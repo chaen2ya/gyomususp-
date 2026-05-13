@@ -1,0 +1,29 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <!-- 배경 (둥근 사각형) -->
+  <rect width="512" height="512" rx="90" fill="#1c2340"/>
+  <!-- 노트 본체 -->
+  <rect x="105" y="68" width="310" height="376" rx="14" fill="#faf8f2"/>
+  <!-- 왼쪽 금색 바인딩 -->
+  <rect x="105" y="68" width="52" height="376" rx="0" fill="#c9a84c"/>
+  <rect x="105" y="68" width="52" height="376" rx="14" fill="#c9a84c"/>
+  <rect x="131" y="68" width="26" height="376" fill="#c9a84c"/>
+  <!-- 스프링 구멍들 -->
+  <ellipse cx="131" cy="138" rx="16" ry="22" fill="#1c2340"/>
+  <ellipse cx="131" cy="138" rx="10" ry="14" fill="#c9a84c"/>
+  <ellipse cx="131" cy="214" rx="16" ry="22" fill="#1c2340"/>
+  <ellipse cx="131" cy="214" rx="10" ry="14" fill="#c9a84c"/>
+  <ellipse cx="131" cy="290" rx="16" ry="22" fill="#1c2340"/>
+  <ellipse cx="131" cy="290" rx="10" ry="14" fill="#c9a84c"/>
+  <ellipse cx="131" cy="366" rx="16" ry="22" fill="#1c2340"/>
+  <ellipse cx="131" cy="366" rx="10" ry="14" fill="#c9a84c"/>
+  <!-- 빨간 마진선 -->
+  <line x1="192" y1="80" x2="192" y2="432" stroke="#e8a0a0" stroke-width="5" opacity="0.7"/>
+  <!-- 노트 줄 -->
+  <line x1="205" y1="160" x2="390" y2="160" stroke="#c8d8e8" stroke-width="7" stroke-linecap="round"/>
+  <line x1="205" y1="210" x2="390" y2="210" stroke="#c8d8e8" stroke-width="7" stroke-linecap="round"/>
+  <line x1="205" y1="260" x2="390" y2="260" stroke="#c8d8e8" stroke-width="7" stroke-linecap="round"/>
+  <line x1="205" y1="310" x2="390" y2="310" stroke="#c8d8e8" stroke-width="7" stroke-linecap="round"/>
+  <line x1="205" y1="360" x2="390" y2="360" stroke="#c8d8e8" stroke-width="7" stroke-linecap="round"/>
+  <!-- 교 글자 -->
+  <text x="298" y="330" text-anchor="middle" font-family="serif" font-size="110" font-weight="bold" fill="#1c2340" opacity="0.15">교무</text>
+</svg>
