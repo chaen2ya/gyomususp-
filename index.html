@@ -12,6 +12,8 @@
 <link rel="apple-touch-icon" href="icon.svg">
 <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700&family=Jua&display=swap" rel="stylesheet">
 <style>@font-face{font-family:'OkDanDan';src:url('./OkDanDan-Bold.ttf') format('truetype');}</style>
+<!-- SheetJS (Excel 내보내기) -->
+<script src="https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js"></script>
 <!-- Firebase SDK -->
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
@@ -113,9 +115,9 @@ body{background:var(--cover);color:var(--ink);display:flex;flex-direction:column
   border-top:2px solid var(--gold);display:flex;z-index:10}
 .nav-btn{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;
   gap:1px;background:none;border:none;color:#6b7a90;font-family:'Noto Sans KR',sans-serif;
-  font-size:9.5px;font-weight:500;cursor:pointer;padding:4px 1px;transition:color .15s}
+  font-size:8px;font-weight:500;cursor:pointer;padding:4px 1px;transition:color .15s}
 .nav-btn.active{color:var(--gold-lt)}
-.nav-btn .ni{font-size:19px;line-height:1}
+.nav-btn .ni{font-size:16px;line-height:1}
 
 /* ── CALENDAR ── */
 .cal-info{background:#fffdf0;border:1px solid #e8d070;border-radius:8px;padding:14px;
@@ -256,7 +258,36 @@ body{background:var(--cover);color:var(--ink);display:flex;flex-direction:column
 .empty .ei{font-size:44px;margin-bottom:10px}
 .empty p{font-size:13px}
 
-@media(max-width:360px){.nav-btn{font-size:8.5px}.nav-btn .ni{font-size:16px}}
+@media(max-width:360px){.nav-btn{font-size:7px}.nav-btn .ni{font-size:14px}}
+
+/* ── EXPORT ── */
+.export-row{display:flex;gap:6px;margin-bottom:12px}
+.btn-xl{padding:7px 11px;background:#217346;color:#fff;border:none;border-radius:6px;
+  font-size:12px;font-family:'Noto Sans KR',sans-serif;cursor:pointer;display:flex;align-items:center;gap:4px}
+.btn-wd{padding:7px 11px;background:#2b579a;color:#fff;border:none;border-radius:6px;
+  font-size:12px;font-family:'Noto Sans KR',sans-serif;cursor:pointer;display:flex;align-items:center;gap:4px}
+.btn-xl:active,.btn-wd:active{opacity:.8}
+
+/* ── NOTE ── */
+.note-add-btn{width:100%;padding:11px;background:var(--cover);color:#fff;border:none;
+  border-radius:8px;font-size:14px;font-family:'Noto Sans KR',sans-serif;cursor:pointer;margin-bottom:14px}
+.note-card{background:#fff;border-radius:8px;padding:12px;margin-bottom:12px;
+  box-shadow:0 1px 4px rgba(0,0,0,0.09);border-left:4px solid var(--gold)}
+.note-card-title{font-weight:700;font-size:14px;color:var(--cover);margin-bottom:4px}
+.note-card-body{font-size:13px;color:var(--ink);line-height:1.65;white-space:pre-wrap}
+.note-card-date{font-size:11px;color:var(--ink-soft);margin-top:6px}
+.note-acts{display:flex;gap:6px;margin-top:8px}
+
+/* ── PARENT CONSULT ── */
+.pc-add-btn{width:100%;padding:11px;background:var(--cover);color:#fff;border:none;
+  border-radius:8px;font-size:14px;font-family:'Noto Sans KR',sans-serif;cursor:pointer;margin-bottom:14px}
+.pc-card{background:#fff;border-radius:8px;padding:12px;margin-bottom:12px;
+  box-shadow:0 1px 4px rgba(0,0,0,0.09);border-left:4px solid var(--green)}
+.pc-hdr{display:flex;justify-content:space-between;align-items:center;margin-bottom:6px}
+.pc-name{font-weight:700;font-size:15px;color:var(--cover)}
+.pc-date-lbl{font-size:11px;color:var(--ink-soft)}
+.pc-memo{font-size:13px;color:var(--ink);line-height:1.65;white-space:pre-wrap}
+.pc-acts{display:flex;gap:6px;margin-top:8px}
 </style>
 </head>
 <body>
@@ -325,10 +356,25 @@ body{background:var(--cover);color:var(--ink);display:flex;flex-direction:column
       <div id="todoList"></div>
     </section>
 
-    <!-- ③ 학생관찰 -->
+    <!-- ③ 노트 -->
+    <section id="sec-note" class="tab-sec">
+      <h2 class="sec-title">📝 노트</h2>
+      <button class="note-add-btn" onclick="openNoteModal(null)">+ 새 노트 작성</button>
+      <div class="export-row">
+        <button class="btn-xl" onclick="exportExcel('note')">📊 엑셀 저장</button>
+        <button class="btn-wd" onclick="exportWord('note')">📄 워드 저장</button>
+      </div>
+      <div id="noteList"></div>
+    </section>
+
+    <!-- ④ 학생관찰 -->
     <section id="sec-obs" class="tab-sec">
       <h2 class="sec-title">👁️ 학생관찰</h2>
       <button class="obs-add-btn" onclick="openObsModal(null)">+ 새 관찰 기록 추가</button>
+      <div class="export-row">
+        <button class="btn-xl" onclick="exportExcel('obs')">📊 엑셀 저장</button>
+        <button class="btn-wd" onclick="exportWord('obs')">📄 워드 저장</button>
+      </div>
       <div class="obs-sort-row">
         <label>정렬:</label>
         <select id="obsSort" onchange="renderObs()">
@@ -341,7 +387,27 @@ body{background:var(--cover);color:var(--ink);display:flex;flex-direction:column
       <div id="obsList"></div>
     </section>
 
-    <!-- ④ 체크리스트 -->
+    <!-- ⑤ 부모상담 -->
+    <section id="sec-parent" class="tab-sec">
+      <h2 class="sec-title">🤝 부모상담</h2>
+      <button class="pc-add-btn" onclick="openParentModal(null)">+ 새 상담 기록 추가</button>
+      <div class="export-row">
+        <button class="btn-xl" onclick="exportExcel('parent')">📊 엑셀 저장</button>
+        <button class="btn-wd" onclick="exportWord('parent')">📄 워드 저장</button>
+      </div>
+      <div class="obs-sort-row">
+        <label>정렬:</label>
+        <select id="parentSort" onchange="renderParents()">
+          <option value="d-desc">날짜 (최신순)</option>
+          <option value="d-asc">날짜 (오래된순)</option>
+          <option value="n-asc">이름 (가나다순)</option>
+          <option value="n-desc">이름 (역순)</option>
+        </select>
+      </div>
+      <div id="parentList"></div>
+    </section>
+
+    <!-- ⑥ 체크리스트 -->
     <section id="sec-chk" class="tab-sec">
       <h2 class="sec-title">📋 우리반 체크리스트</h2>
       <div class="chk-toolbar">
@@ -377,7 +443,9 @@ body{background:var(--cover);color:var(--ink);display:flex;flex-direction:column
   <nav class="bot-nav">
     <button class="nav-btn active" onclick="goTab('cal',this)"><span class="ni">📅</span><span>학사일정</span></button>
     <button class="nav-btn" onclick="goTab('todo',this)"><span class="ni">✅</span><span>할일목록</span></button>
+    <button class="nav-btn" onclick="goTab('note',this)"><span class="ni">📝</span><span>노트</span></button>
     <button class="nav-btn" onclick="goTab('obs',this)"><span class="ni">👁️</span><span>학생관찰</span></button>
+    <button class="nav-btn" onclick="goTab('parent',this)"><span class="ni">🤝</span><span>부모상담</span></button>
     <button class="nav-btn" onclick="goTab('chk',this)"><span class="ni">📋</span><span>체크리스트</span></button>
     <button class="nav-btn" onclick="goTab('staff',this)"><span class="ni">👩‍🏫</span><span>교직원</span></button>
     <button class="nav-btn" onclick="goTab('stu',this)"><span class="ni">📱</span><span>학생연락</span></button>
@@ -454,6 +522,35 @@ body{background:var(--cover);color:var(--ink);display:flex;flex-direction:column
   </div>
 </div>
 
+<!-- 노트 모달 -->
+<div class="overlay" id="noteOverlay">
+  <div class="modal">
+    <div class="modal-title">📝 노트</div>
+    <input type="hidden" id="noteEditId">
+    <div class="fg"><label>제목 (선택)</label><input type="text" id="noteTitle" placeholder="제목 입력..."></div>
+    <div class="fg"><label>내용</label><textarea id="noteContent" placeholder="메모를 입력하세요..." style="height:160px"></textarea></div>
+    <div class="modal-btns">
+      <button class="btn-cancel" onclick="closeOverlay('noteOverlay')">취소</button>
+      <button class="btn-save" onclick="saveNote()">저장</button>
+    </div>
+  </div>
+</div>
+
+<!-- 부모상담 모달 -->
+<div class="overlay" id="parentOverlay">
+  <div class="modal">
+    <div class="modal-title">🤝 부모상담 기록</div>
+    <input type="hidden" id="parentEditId">
+    <div class="fg"><label>학생 이름</label><input type="text" id="parentStudentName" placeholder="학생 이름 입력"></div>
+    <div class="fg"><label>상담 날짜</label><input type="date" id="parentDate"></div>
+    <div class="fg"><label>상담 내용</label><textarea id="parentContent" placeholder="상담 내용을 입력하세요..." style="height:140px"></textarea></div>
+    <div class="modal-btns">
+      <button class="btn-cancel" onclick="closeOverlay('parentOverlay')">취소</button>
+      <button class="btn-save" onclick="saveParent()">저장</button>
+    </div>
+  </div>
+</div>
+
 <script>
 const firebaseConfig = {
   apiKey: "AIzaSyAFiWvWeNlawyleSZxTQtdQbVpmnD9RZ-4",
@@ -472,7 +569,7 @@ const db   = firebase.firestore();
 db.enablePersistence({ synchronizeTabs: true }).catch(function(){});
 
 var uid = null;
-var todos = [], obs = [], staff = [], studs = [];
+var todos = [], obs = [], staff = [], studs = [], notes = [], parentConsults = [];
 var chkData = { students:[], items:[], cells:{} };
 var curFilter = 'all', chkTarget = null;
 var unsubscribers = [];
@@ -524,14 +621,14 @@ function showApp() {
 
 var appReady = false;
 var loadCount = 0;
-var TOTAL_DOCS = 5;
+var TOTAL_DOCS = 6;
 
 function onDocLoaded() {
   loadCount++;
   if(loadCount >= TOTAL_DOCS && !appReady) {
     appReady = true;
     showApp();
-    renderTodos(); renderObs(); renderChk(); renderStaff(); renderStudents();
+    renderTodos(); renderObs(); renderChk(); renderStaff(); renderStudents(); renderNotes(); renderParents();
   }
 }
 
@@ -574,9 +671,18 @@ function setupListeners() {
     }
     onDocLoaded();
   }));
+  unsubscribers.push(uref('data/notes').onSnapshot(function(snap) {
+    notes = snap.exists ? (snap.data().items || []) : [];
+    if(appReady) renderNotes();
+    onDocLoaded();
+  }));
   unsubscribers.push(ucol('observations').onSnapshot(function(snap) {
     obs = snap.docs.map(function(d){ return Object.assign({id: d.id}, d.data()); });
     if(appReady) renderObs();
+  }));
+  unsubscribers.push(ucol('parentConsults').onSnapshot(function(snap) {
+    parentConsults = snap.docs.map(function(d){ return Object.assign({id: d.id}, d.data()); });
+    if(appReady) renderParents();
   }));
 }
 
@@ -586,6 +692,7 @@ function saveTodos()    { uref('data/todos').set({items: todos}); }
 function saveStaff()    { uref('data/staff').set({items: staff}); }
 function saveStudents() { uref('data/students').set({items: studs}); }
 function saveChk()      { uref('data/checklist').set(chkData); }
+function saveNotes()    { uref('data/notes').set({items: notes}); }
 
 function goTab(id, btn) {
   document.querySelectorAll('.tab-sec').forEach(function(s){ s.classList.remove('active'); });
@@ -895,6 +1002,202 @@ function renderStudents() {
         '<button class="ic-btn" onclick="deleteContact(\'student\','+c.id+')" style="color:#e57373">🗑️</button></div>'+
       '</div></div>';
   }).join('');
+}
+
+function openNoteModal(id) {
+  document.getElementById('noteEditId').value = id || '';
+  if(id) {
+    var n = notes.find(function(x){ return x.id===id; });
+    if(!n) return;
+    document.getElementById('noteTitle').value = n.title || '';
+    document.getElementById('noteContent').value = n.content || '';
+  } else {
+    document.getElementById('noteTitle').value = '';
+    document.getElementById('noteContent').value = '';
+  }
+  document.getElementById('noteOverlay').classList.add('show');
+}
+function saveNote() {
+  var content = document.getElementById('noteContent').value.trim();
+  if(!content){ alert('내용을 입력해주세요.'); return; }
+  var eid = document.getElementById('noteEditId').value;
+  var entry = {
+    id: eid ? Number(eid) : Date.now(),
+    title: document.getElementById('noteTitle').value.trim(),
+    content: content,
+    updatedAt: new Date().toISOString()
+  };
+  if(eid) {
+    notes = notes.map(function(n){ return n.id==eid ? entry : n; });
+  } else {
+    entry.createdAt = entry.updatedAt;
+    notes.unshift(entry);
+  }
+  saveNotes();
+  closeOverlay('noteOverlay');
+}
+function deleteNote(id) {
+  if(!confirm('이 노트를 삭제하시겠습니까?')) return;
+  notes = notes.filter(function(n){ return n.id!==id; });
+  saveNotes();
+}
+function renderNotes() {
+  var list = document.getElementById('noteList');
+  if(!list) return;
+  if(!notes.length){ list.innerHTML='<div class="empty"><div class="ei">📝</div><p>노트가 없습니다.</p></div>'; return; }
+  list.innerHTML = notes.map(function(n){
+    return '<div class="note-card">'+
+      (n.title?'<div class="note-card-title">'+esc(n.title)+'</div>':'')+
+      '<div class="note-card-body">'+esc(n.content)+'</div>'+
+      '<div class="note-card-date">'+(n.updatedAt?n.updatedAt.slice(0,10):'')+'</div>'+
+      '<div class="note-acts">'+
+        '<button class="btn-edit-sm" onclick="openNoteModal('+n.id+')">✏️ 수정</button>'+
+        '<button class="btn-del-sm" onclick="deleteNote('+n.id+')">🗑️ 삭제</button>'+
+      '</div></div>';
+  }).join('');
+}
+
+function openParentModal(id) {
+  document.getElementById('parentEditId').value = id || '';
+  if(id) {
+    var p = parentConsults.find(function(x){ return x.id===id; });
+    if(!p) return;
+    document.getElementById('parentStudentName').value = p.name || '';
+    document.getElementById('parentDate').value = p.date || '';
+    document.getElementById('parentContent').value = p.content || '';
+  } else {
+    document.getElementById('parentStudentName').value = '';
+    document.getElementById('parentDate').value = todayStr();
+    document.getElementById('parentContent').value = '';
+  }
+  document.getElementById('parentOverlay').classList.add('show');
+}
+function saveParent() {
+  var name    = document.getElementById('parentStudentName').value.trim();
+  var date    = document.getElementById('parentDate').value;
+  var content = document.getElementById('parentContent').value.trim();
+  if(!name){ alert('학생 이름을 입력해주세요.'); return; }
+  if(!date){ alert('날짜를 선택해주세요.'); return; }
+  var eid  = document.getElementById('parentEditId').value;
+  var data = { name:name, date:date, content:content, updatedAt: new Date().toISOString() };
+  var col  = ucol('parentConsults');
+  if(eid) col.doc(eid).set(data);
+  else    col.add(Object.assign(data, { createdAt: new Date().toISOString() }));
+  closeOverlay('parentOverlay');
+}
+function deleteParent(id) {
+  if(!confirm('이 상담 기록을 삭제하시겠습니까?')) return;
+  ucol('parentConsults').doc(id).delete();
+}
+function renderParents() {
+  var list = document.getElementById('parentList');
+  if(!list) return;
+  var sortEl = document.getElementById('parentSort');
+  var sort = sortEl ? sortEl.value : 'd-desc';
+  var sorted = parentConsults.slice().sort(function(a,b){
+    if(sort==='d-desc') return b.date.localeCompare(a.date);
+    if(sort==='d-asc')  return a.date.localeCompare(b.date);
+    if(sort==='n-asc')  return a.name.localeCompare(b.name,'ko');
+    if(sort==='n-desc') return b.name.localeCompare(a.name,'ko');
+    return 0;
+  });
+  if(!sorted.length){ list.innerHTML='<div class="empty"><div class="ei">🤝</div><p>상담 기록이 없습니다.</p></div>'; return; }
+  list.innerHTML = sorted.map(function(p){
+    return '<div class="pc-card">'+
+      '<div class="pc-hdr"><span class="pc-name">👤 '+esc(p.name)+'</span><span class="pc-date-lbl">'+p.date+'</span></div>'+
+      (p.content?'<div class="pc-memo">'+esc(p.content)+'</div>':'')+
+      '<div class="pc-acts">'+
+        '<button class="btn-edit-sm" onclick="openParentModal(\''+p.id+'\')">✏️ 수정</button>'+
+        '<button class="btn-del-sm" onclick="deleteParent(\''+p.id+'\')">🗑️ 삭제</button>'+
+      '</div></div>';
+  }).join('');
+}
+
+/* ── 내보내기 ── */
+function exportExcel(type) {
+  var wb = XLSX.utils.book_new();
+  var rows, sheetName, fileName;
+
+  if(type === 'obs') {
+    if(!obs.length){ alert('내보낼 학생관찰 기록이 없습니다.'); return; }
+    rows = [['학생이름','날짜','관찰내용']].concat(
+      obs.slice().sort(function(a,b){ return b.date.localeCompare(a.date); })
+         .map(function(o){ return [o.name, o.date, o.memo||'']; })
+    );
+    sheetName='학생관찰'; fileName='학생관찰_'+todayStr()+'.xlsx';
+  } else if(type === 'parent') {
+    if(!parentConsults.length){ alert('내보낼 부모상담 기록이 없습니다.'); return; }
+    rows = [['학생이름','날짜','상담내용']].concat(
+      parentConsults.slice().sort(function(a,b){ return b.date.localeCompare(a.date); })
+                    .map(function(p){ return [p.name, p.date, p.content||'']; })
+    );
+    sheetName='부모상담'; fileName='부모상담_'+todayStr()+'.xlsx';
+  } else if(type === 'note') {
+    if(!notes.length){ alert('내보낼 노트가 없습니다.'); return; }
+    rows = [['제목','내용','날짜']].concat(
+      notes.map(function(n){ return [n.title||'(제목없음)', n.content||'', n.updatedAt?n.updatedAt.slice(0,10):'']; })
+    );
+    sheetName='노트'; fileName='노트_'+todayStr()+'.xlsx';
+  }
+
+  var ws = XLSX.utils.aoa_to_sheet(rows);
+  /* 열 너비 자동 설정 */
+  ws['!cols'] = rows[0].map(function(_,ci){
+    var max = rows.reduce(function(m,r){ return Math.max(m, String(r[ci]||'').length); }, 10);
+    return { wch: Math.min(max + 2, 60) };
+  });
+  XLSX.utils.book_append_sheet(wb, ws, sheetName);
+  XLSX.writeFile(wb, fileName);
+}
+
+function exportWord(type) {
+  var title, bodyHtml, fileName;
+
+  function escHtml(s){ return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/\n/g,'<br>'); }
+
+  if(type === 'obs') {
+    if(!obs.length){ alert('내보낼 학생관찰 기록이 없습니다.'); return; }
+    title='학생관찰 기록'; fileName='학생관찰_'+todayStr()+'.doc';
+    var sorted = obs.slice().sort(function(a,b){ return b.date.localeCompare(a.date); });
+    bodyHtml = sorted.map(function(o){
+      return '<h3 style="color:#1c2340;margin:16px 0 4px">'+escHtml(o.name)+'&nbsp;<span style="font-size:12px;color:#888;font-weight:normal">'+o.date+'</span></h3>'+
+             '<p style="margin:0 0 12px;line-height:1.7">'+escHtml(o.memo)+'</p><hr style="border:none;border-top:1px solid #ddd">';
+    }).join('');
+  } else if(type === 'parent') {
+    if(!parentConsults.length){ alert('내보낼 부모상담 기록이 없습니다.'); return; }
+    title='부모상담 기록'; fileName='부모상담_'+todayStr()+'.doc';
+    var sorted = parentConsults.slice().sort(function(a,b){ return b.date.localeCompare(a.date); });
+    bodyHtml = sorted.map(function(p){
+      return '<h3 style="color:#1c2340;margin:16px 0 4px">'+escHtml(p.name)+'&nbsp;<span style="font-size:12px;color:#888;font-weight:normal">'+p.date+'</span></h3>'+
+             '<p style="margin:0 0 12px;line-height:1.7">'+escHtml(p.content)+'</p><hr style="border:none;border-top:1px solid #ddd">';
+    }).join('');
+  } else if(type === 'note') {
+    if(!notes.length){ alert('내보낼 노트가 없습니다.'); return; }
+    title='노트'; fileName='노트_'+todayStr()+'.doc';
+    bodyHtml = notes.map(function(n){
+      return (n.title?'<h3 style="color:#1c2340;margin:16px 0 4px">'+escHtml(n.title)+'</h3>':'')+
+             '<p style="margin:0 0 4px;font-size:11px;color:#888">'+(n.updatedAt?n.updatedAt.slice(0,10):'')+'</p>'+
+             '<p style="margin:0 0 12px;line-height:1.7">'+escHtml(n.content)+'</p><hr style="border:none;border-top:1px solid #ddd">';
+    }).join('');
+  }
+
+  var html = '<html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:w="urn:schemas-microsoft-com:office:word" xmlns="http://www.w3.org/TR/REC-html40">'+
+    '<head><meta charset="UTF-8">'+
+    '<style>body{font-family:"맑은 고딕",sans-serif;font-size:11pt;margin:2cm} h1{font-size:16pt;color:#1c2340;border-bottom:2px solid #1c2340;padding-bottom:6px;margin-bottom:20px}</style>'+
+    '</head><body>'+
+    '<h1>'+title+'</h1>'+
+    '<p style="font-size:10pt;color:#888;margin-bottom:20px">내보낸 날짜: '+todayStr()+'</p>'+
+    bodyHtml+
+    '</body></html>';
+
+  var blob = new Blob(['﻿'+html], {type:'application/msword;charset=utf-8'});
+  var a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = fileName;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(a.href);
 }
 
 function closeOverlay(id){ document.getElementById(id).classList.remove('show'); }
