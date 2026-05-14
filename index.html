@@ -5,12 +5,13 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <title>디지털 교무수첩</title>
 <link rel="manifest" href="manifest.json">
-<meta name="theme-color" content="#1c2340">
+<meta name="theme-color" content="#111111">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="교무수첩">
 <link rel="apple-touch-icon" href="icon.svg">
 <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700&family=Jua&display=swap" rel="stylesheet">
+<style>@font-face{font-family:'OkDanDan';src:url('./OkDanDan-Bold.ttf') format('truetype');}</style>
 <!-- Firebase SDK -->
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
@@ -61,26 +62,25 @@ body{background:var(--cover);color:var(--ink);display:flex;flex-direction:column
 /* ── HEADER ── */
 .hdr{
   flex-shrink:0;height:var(--hdr-h);
-  background:linear-gradient(135deg,#1c2340 0%,#243060 60%,#1a3555 100%);
-  border-bottom:2px solid var(--gold);
+  background: url('./texture.png') center/500px 707px repeat;
+  border-bottom:3px solid #111;
   display:flex;align-items:center;justify-content:space-between;padding:0 12px;z-index:10;
 }
-.hdr-title{font-family:'Jua',sans-serif;font-size:18px;color:#f0e6c8;letter-spacing:1px;line-height:1.2}
-.hdr-title small{display:block;font-family:'Noto Sans KR',sans-serif;font-size:10px;font-weight:300;color:#8fa0b8}
+.hdr-title{font-family:'OkDanDan',cursive;font-size:20px;color:#fff;letter-spacing:1px;line-height:1.2;
+  text-shadow:1px 1px 0 #000,-1px -1px 0 #000,1px -1px 0 #000,-1px 1px 0 #000,0 0 6px rgba(0,0,0,0.8)}
+.hdr-title small{display:block;font-family:'Noto Sans KR',sans-serif;font-size:10px;font-weight:300;color:#fff;
+  text-shadow:0 1px 2px #000}
 .hdr-right{display:flex;align-items:center;gap:8px}
 .user-photo{width:30px;height:30px;border-radius:50%;border:2px solid var(--gold);object-fit:cover}
 .user-initials{width:30px;height:30px;border-radius:50%;border:2px solid var(--gold);
   background:var(--gold);color:var(--cover);font-size:13px;font-weight:700;
   display:flex;align-items:center;justify-content:center}
-.signout-btn{background:none;border:1px solid #4a5a7a;color:#8fa0b8;
-  border-radius:6px;padding:4px 8px;font-size:11px;cursor:pointer;font-family:'Noto Sans KR',sans-serif}
+.signout-btn{background:rgba(0,0,0,0.45);border:1px solid rgba(255,255,255,0.5);color:#fff;
+  border-radius:6px;padding:4px 8px;font-size:11px;cursor:pointer;font-family:'Noto Sans KR',sans-serif;
+  text-shadow:0 1px 2px #000}
 
 /* ── SPIRAL ── */
-.spiral{flex-shrink:0;height:14px;
-  background:repeating-linear-gradient(90deg,transparent 0,transparent 14px,
-    #b0b8c8 14px,#b0b8c8 28px,transparent 28px,transparent 36px,
-    #8090a8 36px,#8090a8 40px,transparent 40px,transparent 54px);
-  background-color:#c8cdd8;border-bottom:1px solid #9aa0b0}
+.spiral{flex-shrink:0;height:14px;background:#111;border-bottom:none}
 
 /* ── CONTENT ── */
 .content-wrap{flex:1;overflow:hidden;position:relative;background:var(--paper)}
@@ -109,7 +109,7 @@ body{background:var(--cover);color:var(--ink);display:flex;flex-direction:column
 @keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
 
 /* ── BOTTOM NAV ── */
-.bot-nav{flex-shrink:0;height:var(--tab-h);background:var(--cover2);
+.bot-nav{flex-shrink:0;height:var(--tab-h);background:#111;
   border-top:2px solid var(--gold);display:flex;z-index:10}
 .nav-btn{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;
   gap:1px;background:none;border:none;color:#6b7a90;font-family:'Noto Sans KR',sans-serif;
@@ -418,11 +418,16 @@ body{background:var(--cover);color:var(--ink);display:flex;flex-direction:column
     <div class="fg"><label>관찰 내용</label><textarea id="obsMemo" placeholder="관찰 내용 메모..."></textarea></div>
     <div class="fg">
       <label>사진 (선택)</label>
-      <div class="photo-zone" onclick="document.getElementById('obsPhotoFile').click()">
-        <img id="obsPhotoPreview" style="display:none">
-        <p id="obsPhotoHint">📷 탭하여 사진 추가</p>
+      <div class="photo-zone" onclick="if(event.target===this||event.target.id==='obsPhotoPreview'){setPhotoPreview('')}">
+        <img id="obsPhotoPreview" style="display:none;cursor:pointer" title="탭하면 사진 제거">
+        <p id="obsPhotoHint" style="margin-bottom:10px">사진을 추가하세요</p>
+        <div style="display:flex;gap:8px;justify-content:center">
+          <button type="button" onclick="document.getElementById('obsPhotoGallery').click()" style="padding:7px 14px;border:1px solid #c0ccd8;border-radius:6px;background:#f5f7fa;font-size:13px;font-family:'Noto Sans KR',sans-serif;cursor:pointer">🖼️ 갤러리</button>
+          <button type="button" onclick="document.getElementById('obsPhotoCamera').click()" style="padding:7px 14px;border:1px solid #c0ccd8;border-radius:6px;background:#f5f7fa;font-size:13px;font-family:'Noto Sans KR',sans-serif;cursor:pointer">📷 카메라</button>
+        </div>
       </div>
-      <input type="file" id="obsPhotoFile" accept="image/*" capture="environment" style="display:none" onchange="loadPhoto()">
+      <input type="file" id="obsPhotoGallery" accept="image/*" style="display:none" onchange="loadPhoto(this)">
+      <input type="file" id="obsPhotoCamera" accept="image/*" capture="environment" style="display:none" onchange="loadPhoto(this)">
     </div>
     <div class="modal-btns">
       <button class="btn-cancel" onclick="closeOverlay('obsOverlay')">취소</button>
@@ -663,11 +668,12 @@ function openObsModal(id) {
 }
 function setPhotoPreview(src) {
   var img=document.getElementById('obsPhotoPreview'), hint=document.getElementById('obsPhotoHint');
-  if(src){ img.src=src; img.style.display='block'; hint.style.display='none'; }
-  else   { img.src='';  img.style.display='none';  hint.style.display='block'; }
+  var btns=document.querySelector('.photo-zone div');
+  if(src){ img.src=src; img.style.display='block'; hint.style.display='none'; if(btns) btns.style.display='none'; }
+  else   { img.src='';  img.style.display='none';  hint.style.display='block'; if(btns) btns.style.display='flex'; }
 }
-function loadPhoto() {
-  var file = document.getElementById('obsPhotoFile').files[0];
+function loadPhoto(input) {
+  var file = input.files[0];
   if(!file) return;
   var reader = new FileReader();
   reader.onload = function(e) {
