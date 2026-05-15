@@ -1,4 +1,4 @@
-const CACHE_NAME = 'gyomususp-v4';
+const CACHE_NAME = 'gyomususp-v5';
 const ASSETS = [
   './',
   './index.html',
@@ -40,4 +40,9 @@ self.addEventListener('fetch', function(e) {
           });
         }
         return response;
-      }).catc
+      }).catch(function() {
+        return cached;
+      })
+    );
+  });
+}
