@@ -535,6 +535,19 @@ body{background:var(--cover);color:var(--ink);display:flex;flex-direction:column
     <input type="hidden" id="noteEditId">
     <div class="fg"><label>제목 (선택)</label><input type="text" id="noteTitle" placeholder="제목 입력..."></div>
     <div class="fg"><label>내용</label><textarea id="noteContent" placeholder="메모를 입력하세요..." style="height:160px"></textarea></div>
+    <div class="fg">
+      <label>사진 (선택)</label>
+      <div class="photo-zone" onclick="if(event.target===this||event.target.id==='notePhotoPreview'){setNotePhotoPreview('')}">
+        <img id="notePhotoPreview" style="display:none;cursor:pointer" title="탭하면 사진 제거">
+        <p id="notePhotoHint" style="margin-bottom:10px">사진을 추가하세요</p>
+        <div style="display:flex;gap:8px;justify-content:center">
+          <button type="button" onclick="document.getElementById('notePhotoGallery').click()" style="padding:7px 14px;border:1px solid #c0ccd8;border-radius:6px;background:#f5f7fa;font-size:13px;font-family:'MyHandwriting','Noto Sans KR',sans-serif;cursor:pointer">🖼️ 갤러리</button>
+          <button type="button" onclick="document.getElementById('notePhotoCamera').click()" style="padding:7px 14px;border:1px solid #c0ccd8;border-radius:6px;background:#f5f7fa;font-size:13px;font-family:'MyHandwriting','Noto Sans KR',sans-serif;cursor:pointer">📷 카메라</button>
+        </div>
+      </div>
+      <input type="file" id="notePhotoGallery" accept="image/*" style="display:none" onchange="loadNotePhoto(this)">
+      <input type="file" id="notePhotoCamera" accept="image/*" capture="environment" style="display:none" onchange="loadNotePhoto(this)">
+    </div>
     <div class="modal-btns">
       <button class="btn-cancel" onclick="closeOverlay('noteOverlay')">취소</button>
       <button class="btn-save" onclick="saveNote()">저장</button>
