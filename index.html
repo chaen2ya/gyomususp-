@@ -377,6 +377,7 @@ body{background:var(--cover);color:var(--ink);display:flex;flex-direction:column
     <section id="sec-obs" class="tab-sec">
       <h2 class="sec-title">👁️ 학생관찰</h2>
       <button class="obs-add-btn" onclick="openObsModal(null)">+ 새 관찰 기록 추가</button>
+      <input class="search-box" id="obsQ" type="text" placeholder="🔍 학생 이름 검색..." oninput="renderObs()" style="margin-bottom:10px">
       <div class="export-row">
         <button class="btn-xl" onclick="exportExcel('obs')">📊 엑셀 저장</button>
         <button class="btn-wd" onclick="exportWord('obs')">📄 워드 저장</button>
@@ -397,6 +398,7 @@ body{background:var(--cover);color:var(--ink);display:flex;flex-direction:column
     <section id="sec-parent" class="tab-sec">
       <h2 class="sec-title">🤝 부모상담</h2>
       <button class="pc-add-btn" onclick="openParentModal(null)">+ 새 상담 기록 추가</button>
+      <input class="search-box" id="parentQ" type="text" placeholder="🔍 학생 이름 검색..." oninput="renderParents()" style="margin-bottom:10px">
       <div class="export-row">
         <button class="btn-xl" onclick="exportExcel('parent')">📊 엑셀 저장</button>
         <button class="btn-wd" onclick="exportWord('parent')">📄 워드 저장</button>
@@ -1140,9 +1142,10 @@ function deleteParent(id) {
 function renderParents() {
   var list = document.getElementById('parentList');
   if(!list) return;
+  var q = (document.getElementById('parentQ').value || '').toLowerCase();
   var sortEl = document.getElementById('parentSort');
   var sort = sortEl ? sortEl.value : 'd-desc';
-  var sorted = parentConsults.slice().sort(function(a,b){
+  var sorted = parentConsults.slice().filter(function(p){ return p.name.toLowerCase().includes(q); }).sort(function(a,b){
     if(sort==='d-desc') return b.date.localeCompare(a.date);
     if(sort==='d-asc')  return a.date.localeCompare(b.date);
     if(sort==='n-asc')  return a.name.localeCompare(b.name,'ko');
@@ -1160,7 +1163,6 @@ function renderParents() {
       '</div></div>';
   }).join('');
 }
-
 /* ── 내보내기 ── */
 function exportExcel(type) {
   var wb = XLSX.utils.book_new();
