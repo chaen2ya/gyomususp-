@@ -992,10 +992,27 @@ body{background:var(--cover);color:var(--ink);display:flex;flex-direction:column
 <!-- 교육계획 표지 선택 모달 -->
 <div class="overlay" id="eduCoverOverlay">
   <div class="modal">
-    <div class="modal-title">🎨 표지 디자인 선택</div>
+    <div class="modal-title">🎨 표지 색상 설정</div>
     <input type="hidden" id="eduCoverPlanId">
-    <div class="edu-cover-grid" id="eduCoverGrid"></div>
-    <div class="modal-btns" style="margin-top:16px">
+    <div class="fg">
+      <label>배경 색상</label>
+      <div style="display:flex;gap:10px;align-items:center">
+        <input type="color" id="eduCoverColor1" value="#1a1f3a" style="width:56px;height:44px;border:none;cursor:pointer;border-radius:8px;padding:2px">
+        <input type="color" id="eduCoverColor2" value="#2d1b4e" style="width:56px;height:44px;border:none;cursor:pointer;border-radius:8px;padding:2px">
+        <span style="font-size:11px;color:var(--ink-soft)">← 시작색 / 끝색 (그라디언트)</span>
+      </div>
+    </div>
+    <div class="fg">
+      <label>라벨 테두리 색</label>
+      <input type="color" id="eduCoverAccentColor" value="#333333" style="width:56px;height:44px;border:none;cursor:pointer;border-radius:8px;padding:2px">
+    </div>
+    <!-- 미리보기 -->
+    <div id="eduCoverPreview" style="border-radius:10px;height:100px;display:flex;align-items:center;justify-content:center;margin-top:4px;transition:background .2s">
+      <div id="eduCoverPreviewLabel" style="background:rgba(255,255,255,0.95);border-radius:8px;padding:8px 20px;text-align:center;min-width:60%">
+        <div style="font-family:'Jua',sans-serif;font-size:18px;color:#111" id="eduCoverPreviewName">제목</div>
+      </div>
+    </div>
+    <div class="modal-btns" style="margin-top:14px">
       <button class="btn-cancel" onclick="closeOverlay('eduCoverOverlay')">취소</button>
       <button class="btn-save" onclick="eduSaveCover()">적용</button>
     </div>
@@ -2451,16 +2468,17 @@ function renderEduPlans() {
     var accent = p.coverAccent || cover.accent;
     var periodStr = '';
     if(p.startYear) {
-      periodStr = (String(p.startYear).slice(2))+'.'+String(p.startMonth).padStart(2,'0');
-      if(p.endYear && (p.endYear!==p.startYear || p.endMonth!==p.startMonth))
-        periodStr += '~'+(String(p.endYear).slice(2))+'.'+String(p.endMonth).padStart(2,'0');
+      var sD=p.startDay||1, eD=p.endDay||new Date(p.endYear,p.endMonth,0).getDate();
+      periodStr = String(p.startYear).slice(2)+'.'+String(p.startMonth).padStart(2,'0')+'.'+String(sD).padStart(2,'0');
+      if(p.endYear)
+        periodStr += '~'+String(p.endYear).slice(2)+'.'+String(p.endMonth).padStart(2,'0')+'.'+String(eD).padStart(2,'0');
     }
     html += '<div class="edu-cover-card" onclick="eduOpenPlan(\''+p.id+'\')" style="background:'+bg+'">'
       // 장식 원들
       +'<div style="position:absolute;width:120px;height:120px;border-radius:50%;background:rgba(255,255,255,0.04);top:-30px;right:-30px;pointer-events:none"></div>'
       +'<div style="position:absolute;width:80px;height:80px;border-radius:50%;background:rgba(255,255,255,0.03);bottom:20px;left:-20px;pointer-events:none"></div>'
       // 라벨 스티커
-      +'<div class="edu-cover-label">'
+      +'<div class="edu-cover-label" style="border-color:'+esc(accent)+'">'
         +'<div class="edu-cover-title">'+esc(p.name)+'</div>'
         +(periodStr?'<div class="edu-cover-period">'+periodStr+'</div>':'')
       +'</div>'
@@ -2482,37 +2500,40 @@ function eduOpenCoverModal(planId) {
   var p = eduPlans.find(function(x){ return x.id===planId; });
   if(!p) return;
   document.getElementById('eduCoverPlanId').value = planId;
-  var curId = p.coverId || 'flower';
-  var html = EDU_COVERS.map(function(c){
-    var sel = (c.id===curId);
-    return '<div onclick="eduSelectCover(\''+c.id+'\')" id="eduCoverOpt-'+c.id+'" style="'
-      +'background:'+c.bg+';border-radius:10px;padding:12px 8px;text-align:center;cursor:pointer;'
-      +'border:3px solid '+(sel?'#f0e6c8':'transparent')+';position:relative;transition:border .15s">'
-      +'<div style="font-size:11px;color:#fff;font-weight:'+(sel?'700':'400')+'">'+c.label+'</div>'
-      +(sel?'<div style="position:absolute;top:4px;right:4px;font-size:10px">✓</div>':'')
-      +'</div>';
-  }).join('');
-  document.getElementById('eduCoverGrid').innerHTML = html;
+  // 기존 색상 복원
+  var c1 = p.coverC1 || '#1a1f3a';
+  var c2 = p.coverC2 || '#2d1b4e';
+  var ac = p.coverAccent || '#333333';
+  document.getElementById('eduCoverColor1').value = c1;
+  document.getElementById('eduCoverColor2').value = c2;
+  document.getElementById('eduCoverAccentColor').value = ac;
+  document.getElementById('eduCoverPreviewName').textContent = p.name || '제목';
+  eduUpdateCoverPreview();
+  // 실시간 미리보기 이벤트
+  ['eduCoverColor1','eduCoverColor2','eduCoverAccentColor'].forEach(function(id){
+    document.getElementById(id).oninput = eduUpdateCoverPreview;
+  });
   document.getElementById('eduCoverOverlay').classList.add('show');
 }
 
-function eduSelectCover(coverId) {
-  // 선택 표시 갱신
-  EDU_COVERS.forEach(function(c){
-    var el = document.getElementById('eduCoverOpt-'+c.id);
-    if(!el) return;
-    el.style.borderColor = (c.id===coverId) ? '#f0e6c8' : 'transparent';
-    el.querySelector('div').style.fontWeight = (c.id===coverId) ? '700' : '400';
-  });
-  document.getElementById('eduCoverPlanId').dataset.selectedCover = coverId;
+function eduUpdateCoverPreview() {
+  var c1 = document.getElementById('eduCoverColor1').value;
+  var c2 = document.getElementById('eduCoverColor2').value;
+  var ac = document.getElementById('eduCoverAccentColor').value;
+  var prev = document.getElementById('eduCoverPreview');
+  var label = document.getElementById('eduCoverPreviewLabel');
+  prev.style.background = 'linear-gradient(135deg,'+c1+' 0%,'+c2+' 100%)';
+  label.style.border = '2px solid '+ac;
 }
 
 function eduSaveCover() {
   var planId = document.getElementById('eduCoverPlanId').value;
-  var coverId = document.getElementById('eduCoverPlanId').dataset.selectedCover;
-  if(!planId || !coverId) { closeOverlay('eduCoverOverlay'); return; }
-  var cover = eduCoverById(coverId);
-  ucol('eduPlans').doc(planId).set({ coverId: coverId, coverBg: cover.bg, coverAccent: cover.accent }, {merge:true});
+  if(!planId) { closeOverlay('eduCoverOverlay'); return; }
+  var c1 = document.getElementById('eduCoverColor1').value;
+  var c2 = document.getElementById('eduCoverColor2').value;
+  var ac = document.getElementById('eduCoverAccentColor').value;
+  var bg = 'linear-gradient(135deg,'+c1+' 0%,'+c2+' 100%)';
+  ucol('eduPlans').doc(planId).set({ coverC1:c1, coverC2:c2, coverBg:bg, coverAccent:ac }, {merge:true});
   closeOverlay('eduCoverOverlay');
 }
 
@@ -2520,19 +2541,21 @@ function eduNewPlan() {
   var name = prompt('교육계획(단원) 이름을 입력하세요:\n예) 감정, 2026년 6월');
   if(!name||!name.trim()) return;
   var now = new Date();
-  var yr = now.getFullYear(), mo = now.getMonth()+1;
-  var startStr = prompt('시작 연월 입력 (예: 2026-06):', yr+'-'+(mo<10?'0':'')+mo);
+  var todayStr = now.getFullYear()+'-'+(now.getMonth()+1<10?'0':'')+(now.getMonth()+1)+'-'+(now.getDate()<10?'0':'')+now.getDate();
+  var startStr = prompt('시작일 입력 (예: 2026-05-19):', todayStr);
   if(!startStr) return;
-  var sm = startStr.match(/(\d{4})-(\d{1,2})/);
-  if(!sm){ alert('형식 오류. 예: 2026-06'); return; }
-  var sY=parseInt(sm[1]), sM=parseInt(sm[2]);
-  var endStr = prompt('끝 연월 입력 (예: 2026-06):', sY+'-'+(sM<10?'0':'')+sM);
+  var sm = startStr.match(/(\d{4})-(\d{1,2})-(\d{1,2})/);
+  if(!sm){ alert('형식 오류. 예: 2026-05-19'); return; }
+  var sY=parseInt(sm[1]), sM=parseInt(sm[2]), sD=parseInt(sm[3]);
+  var endStr = prompt('종료일 입력 (예: 2026-06-26):', startStr);
   if(!endStr) return;
-  var em = endStr.match(/(\d{4})-(\d{1,2})/);
-  if(!em){ alert('형식 오류. 예: 2026-06'); return; }
-  var eY=parseInt(em[1]), eM=parseInt(em[2]);
+  var em = endStr.match(/(\d{4})-(\d{1,2})-(\d{1,2})/);
+  if(!em){ alert('형식 오류. 예: 2026-06-26'); return; }
+  var eY=parseInt(em[1]), eM=parseInt(em[2]), eD=parseInt(em[3]);
   var data = {
-    name: name.trim(), startYear:sY, startMonth:sM, endYear:eY, endMonth:eM,
+    name: name.trim(),
+    startYear:sY, startMonth:sM, startDay:sD,
+    endYear:eY,   endMonth:eM,   endDay:eD,
     rows: JSON.parse(JSON.stringify(EDU_DEFAULT_ROWS)),
     metas:{}, cells:{},
     createdAt: new Date().toISOString(), updatedAt: new Date().toISOString()
@@ -2548,16 +2571,21 @@ function eduOpenPlan(id) {
   if(!curEduData.metas) curEduData.metas={};
   if(!curEduData.cells) curEduData.cells={};
   if(!curEduData.rows) curEduData.rows=JSON.parse(JSON.stringify(EDU_DEFAULT_ROWS));
-  // 구 데이터 호환
+  // 구 데이터 호환 (월만 있던 데이터)
   if(!curEduData.startYear && curEduData.year){
-    curEduData.startYear=curEduData.year; curEduData.startMonth=curEduData.month||1;
+    curEduData.startYear=curEduData.year; curEduData.startMonth=curEduData.month||1; curEduData.startDay=1;
     curEduData.endYear=curEduData.year;   curEduData.endMonth=curEduData.month||1;
+    curEduData.endDay=new Date(curEduData.year,curEduData.month,0).getDate();
   }
   if(!curEduData.startYear){
     var now=new Date();
-    curEduData.startYear=now.getFullYear(); curEduData.startMonth=now.getMonth()+1;
+    curEduData.startYear=now.getFullYear(); curEduData.startMonth=now.getMonth()+1; curEduData.startDay=1;
     curEduData.endYear=curEduData.startYear; curEduData.endMonth=curEduData.startMonth;
+    curEduData.endDay=new Date(curEduData.startYear,curEduData.startMonth,0).getDate();
   }
+  // startDay/endDay 없으면 기본값
+  if(!curEduData.startDay) curEduData.startDay=1;
+  if(!curEduData.endDay) curEduData.endDay=new Date(curEduData.endYear,curEduData.endMonth,0).getDate();
   document.getElementById('eduDetailTitle').textContent = p.name;
   document.getElementById('eduListView').style.display = 'none';
   document.getElementById('eduDetailView').style.display = '';
@@ -2582,18 +2610,19 @@ function eduRenamePlan() {
 
 function eduChangePeriod() {
   if(!curEduData) return;
-  var startStr=prompt('시작 연월 (예: 2026-06):',
-    curEduData.startYear+'-'+(curEduData.startMonth<10?'0':'')+curEduData.startMonth);
+  var sD=curEduData.startDay||1, eD=curEduData.endDay||new Date(curEduData.endYear,curEduData.endMonth,0).getDate();
+  var curStart=curEduData.startYear+'-'+(curEduData.startMonth<10?'0':'')+curEduData.startMonth+'-'+(sD<10?'0':'')+sD;
+  var curEnd  =curEduData.endYear+'-'+(curEduData.endMonth<10?'0':'')+curEduData.endMonth+'-'+(eD<10?'0':'')+eD;
+  var startStr=prompt('시작일 (예: 2026-05-19):', curStart);
   if(!startStr) return;
-  var sm=startStr.match(/(\d{4})-(\d{1,2})/);
-  if(!sm){ alert('형식 오류 (예: 2026-06)'); return; }
-  var endStr=prompt('끝 연월 (예: 2026-07):',
-    curEduData.endYear+'-'+(curEduData.endMonth<10?'0':'')+curEduData.endMonth);
+  var sm=startStr.match(/(\d{4})-(\d{1,2})-(\d{1,2})/);
+  if(!sm){ alert('형식 오류 (예: 2026-05-19)'); return; }
+  var endStr=prompt('종료일 (예: 2026-06-26):', curEnd);
   if(!endStr) return;
-  var em=endStr.match(/(\d{4})-(\d{1,2})/);
-  if(!em){ alert('형식 오류 (예: 2026-07)'); return; }
-  curEduData.startYear=parseInt(sm[1]); curEduData.startMonth=parseInt(sm[2]);
-  curEduData.endYear=parseInt(em[1]);   curEduData.endMonth=parseInt(em[2]);
+  var em=endStr.match(/(\d{4})-(\d{1,2})-(\d{1,2})/);
+  if(!em){ alert('형식 오류 (예: 2026-06-26)'); return; }
+  curEduData.startYear=parseInt(sm[1]); curEduData.startMonth=parseInt(sm[2]); curEduData.startDay=parseInt(sm[3]);
+  curEduData.endYear=parseInt(em[1]);   curEduData.endMonth=parseInt(em[2]);   curEduData.endDay=parseInt(em[3]);
   saveEduPlan(); renderEduDetail();
 }
 
@@ -2603,28 +2632,26 @@ function eduDeletePlan(id) {
   ucol('eduPlans').doc(id).delete();
 }
 
-/* 범위 내 모든 ISO 주차 반환 */
-function eduGetWeeksInRange(sY,sM,eY,eM) {
+/* 시작일~종료일 범위의 ISO 주차 반환 (날짜 단위로 정확히 자름) */
+function eduGetWeeksInRange(sY,sM,sD,eY,eM,eD) {
   var weeks=[],weekMap={};
-  var y=sY,m=sM;
-  while(y<eY||(y===eY&&m<=eM)){
-    var dim=new Date(y,m,0).getDate();
-    for(var d=1;d<=dim;d++){
-      var dt=new Date(y,m-1,d);
-      var dow=dt.getDay();
-      if(dow===0||dow===6) continue;
+  var startDate=new Date(sY,sM-1,sD);
+  var endDate  =new Date(eY,eM-1,eD);
+  var cur=new Date(startDate);
+  while(cur<=endDate){
+    var dow=cur.getDay();
+    if(dow!==0&&dow!==6){
+      var y=cur.getFullYear(),m=cur.getMonth()+1,d=cur.getDate();
       var off=(dow===0?6:dow-1);
-      var mon=new Date(dt.getTime()-off*86400000);
+      var mon=new Date(cur.getTime()-off*86400000);
       var thu=new Date(mon.getTime()+3*86400000);
       var tY=thu.getFullYear(),tM=thu.getMonth()+1;
-      if(tY<sY||(tY===sY&&tM<sM)) continue;
-      if(tY>eY||(tY===eY&&tM>eM)) continue;
       var wk=thu.toISOString().slice(0,10);
       if(!weekMap[wk]){weekMap[wk]={thu:thu,thuYear:tY,thuMonth:tM,dates:[]};weeks.push(weekMap[wk]);}
       var ds=y+'-'+(m<10?'0':'')+m+'-'+(d<10?'0':'')+d;
       weekMap[wk].dates.push({date:d,dow:dow,year:y,month:m,dateStr:ds});
     }
-    m++; if(m>12){m=1;y++;}
+    cur.setDate(cur.getDate()+1);
   }
   weeks.sort(function(a,b){return a.thu-b.thu;});
   weeks.forEach(function(w){w.dates.sort(function(a,b){return a.dateStr.localeCompare(b.dateStr);});});
@@ -2639,9 +2666,9 @@ function renderEduTable() {
   var tbl=document.getElementById('eduTable');
   if(!tbl||!curEduData) return;
   var rows=curEduData.rows||[];
-  var sY=curEduData.startYear,sM=curEduData.startMonth;
-  var eY=curEduData.endYear,  eM=curEduData.endMonth;
-  var weeks=eduGetWeeksInRange(sY,sM,eY,eM);
+  var sY=curEduData.startYear,sM=curEduData.startMonth,sD=curEduData.startDay||1;
+  var eY=curEduData.endYear,  eM=curEduData.endMonth,  eD=curEduData.endDay||new Date(curEduData.endYear,curEduData.endMonth,0).getDate();
+  var weeks=eduGetWeeksInRange(sY,sM,sD,eY,eM,eD);
   var CAT=54,ROW=52,DAY=46;
   var BW='3px solid #4a5568', BN='1px solid #dde2ea';
   var dowName=['','월','화','수','목','금'];
