@@ -162,18 +162,51 @@ body{background:var(--cover);color:var(--ink);display:flex;flex-direction:column
 .obs-sort-row label{font-size:12px;color:var(--ink-soft)}
 .obs-sort-row select{padding:5px 8px;border:1px solid #c8d0d8;border-radius:6px;
   font-size:12px;font-family:'MyHandwriting','Noto Sans KR',sans-serif}
+/* 카드 - 요약형 */
 .obs-card{background:#fff;border-radius:8px;padding:12px;margin-bottom:12px;
-  box-shadow:0 1px 4px rgba(0,0,0,0.09);border-left:4px solid var(--blue)}
+  box-shadow:0 1px 4px rgba(0,0,0,0.09);border-left:4px solid var(--blue);
+  cursor:pointer;transition:box-shadow .15s}
+.obs-card:active{box-shadow:0 2px 10px rgba(0,0,0,0.18)}
 .obs-hdr{display:flex;justify-content:space-between;align-items:center;margin-bottom:6px}
 .obs-name{font-weight:700;font-size:15px;color:var(--cover)}
 .obs-date-lbl{font-size:11px;color:var(--ink-soft)}
-.obs-memo{font-size:13px;color:var(--ink);line-height:1.65;white-space:pre-wrap}
-.obs-photo{width:100%;max-height:200px;object-fit:cover;border-radius:6px;margin-top:8px}
+/* 메모 3줄 클램프 */
+.obs-memo-preview{font-size:13px;color:var(--ink);line-height:1.65;
+  display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden}
+/* 썸네일 */
+.obs-thumb{width:100%;height:90px;object-fit:cover;border-radius:6px;margin-top:8px}
+.obs-more-hint{font-size:11px;color:var(--blue);margin-top:5px}
+/* 카드 하단 액션 버튼 */
 .obs-acts{display:flex;gap:6px;margin-top:8px}
 .btn-edit-sm{padding:4px 10px;border-radius:4px;border:none;cursor:pointer;font-size:12px;
   font-family:'MyHandwriting','Noto Sans KR',sans-serif;background:#e8f0fe;color:#1a6be8}
 .btn-del-sm{padding:4px 10px;border-radius:4px;border:none;cursor:pointer;font-size:12px;
   font-family:'MyHandwriting','Noto Sans KR',sans-serif;background:#fce8e6;color:#c0392b}
+
+/* ── 관찰 상세 뷰 오버레이 ── */
+#obsDetailOverlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.65);z-index:400;
+  align-items:flex-end;justify-content:center;padding:0}
+#obsDetailOverlay.show{display:flex}
+.obs-detail-sheet{
+  background:var(--paper);
+  background-image:repeating-linear-gradient(transparent,transparent 29px,var(--paper-line) 29px,var(--paper-line) 30px);
+  border-radius:18px 18px 0 0;width:100%;max-width:480px;
+  max-height:88vh;display:flex;flex-direction:column;
+  box-shadow:0 -4px 24px rgba(0,0,0,0.3);
+}
+@media(min-width:768px){.obs-detail-sheet{max-width:768px;border-radius:18px;margin-bottom:40px;max-height:80vh}}
+.obs-detail-handle{width:40px;height:4px;background:#c0c8d0;border-radius:2px;margin:10px auto 0}
+.obs-detail-hdr{padding:14px 16px 10px;border-bottom:1px solid var(--paper-line);
+  display:flex;justify-content:space-between;align-items:center;flex-shrink:0}
+.obs-detail-name{font-family:'Jua',sans-serif;font-size:18px;color:var(--cover)}
+.obs-detail-date{font-size:12px;color:var(--ink-soft)}
+.obs-detail-close{background:none;border:none;font-size:22px;cursor:pointer;color:#888;padding:0 4px;line-height:1}
+.obs-detail-body{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;padding:14px 16px}
+.obs-detail-memo{font-size:14px;color:var(--ink);line-height:1.75;white-space:pre-wrap;margin-bottom:12px}
+.obs-detail-img{width:100%;border-radius:8px;margin-bottom:12px}
+.obs-detail-foot{padding:12px 16px;border-top:1px solid var(--paper-line);
+  display:flex;gap:8px;flex-shrink:0;background:var(--paper)}
+.obs-detail-foot .btn-edit-sm,.obs-detail-foot .btn-del-sm{flex:1;padding:10px;font-size:13px;border-radius:8px}
 
 /* ── CHECKLIST ── */
 .chk-toolbar{display:flex;gap:6px;margin-bottom:12px;flex-wrap:wrap}
@@ -275,13 +308,86 @@ body{background:var(--cover);color:var(--ink);display:flex;flex-direction:column
 .btn-xl:active,.btn-wd:active{opacity:.8}
 
 /* ── NOTE ── */
+.obs-photo{width:100%;max-height:200px;object-fit:cover;border-radius:6px;margin-top:8px}
 .note-add-btn{width:100%;padding:11px;background:var(--cover);color:#fff;border:none;
   border-radius:8px;font-size:14px;font-family:'MyHandwriting','Noto Sans KR',sans-serif;cursor:pointer;margin-bottom:14px}
-.note-card{background:#fff;border-radius:8px;padding:12px;margin-bottom:12px;
-  box-shadow:0 1px 4px rgba(0,0,0,0.09);border-left:4px solid var(--gold)}
-.note-card-title{font-weight:700;font-size:14px;color:var(--cover);margin-bottom:4px}
-.note-card-body{font-size:13px;color:var(--ink);line-height:1.65;white-space:pre-wrap}
-.note-card-date{font-size:11px;color:var(--ink-soft);margin-top:6px}
+
+/* 그리드 레이아웃 */
+.note-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:12px;padding-bottom:8px}
+@media(min-width:600px){.note-grid{grid-template-columns:repeat(3,1fr)}}
+
+/* 노트북 첫 장 카드 */
+.note-card{
+  background:#fffef8;border-radius:10px;
+  box-shadow:2px 3px 10px rgba(0,0,0,0.13);
+  cursor:pointer;overflow:hidden;
+  display:flex;flex-direction:column;
+  aspect-ratio:3/4;
+  border:1px solid #e8e0c8;
+  transition:transform .15s,box-shadow .15s;
+  position:relative;
+}
+.note-card:active{transform:scale(.97);box-shadow:1px 2px 6px rgba(0,0,0,0.1)}
+
+/* 노트 상단 탭 */
+.note-card-tab{
+  height:8px;background:var(--gold);flex-shrink:0;
+}
+/* 노트 내부 영역 (줄 배경) */
+.note-card-inner{
+  flex:1;overflow:hidden;padding:8px 9px 6px;
+  background-image:repeating-linear-gradient(transparent,transparent 17px,rgba(180,200,220,0.5) 17px,rgba(180,200,220,0.5) 18px);
+  background-attachment:local;
+  position:relative;
+}
+/* 제목줄 */
+.note-card-title{
+  font-size:11px;font-weight:700;color:var(--cover);
+  margin-bottom:4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+  border-bottom:1px solid rgba(201,168,76,0.5);padding-bottom:3px;margin-bottom:5px;
+}
+/* 본문 미리보기 */
+.note-card-body{
+  font-size:10px;color:var(--ink);line-height:18px;
+  overflow:hidden;
+  display:-webkit-box;-webkit-line-clamp:6;-webkit-box-orient:vertical;
+}
+/* 사진 있는 경우 썸네일 */
+.note-card-thumb{
+  width:100%;height:60px;object-fit:cover;flex-shrink:0;
+  border-top:1px solid #e8e0c8;
+}
+/* 날짜 배지 */
+.note-card-date{
+  position:absolute;bottom:5px;right:7px;
+  font-size:9px;color:#b8a878;
+}
+
+/* ── 노트 상세 바텀시트 ── */
+#noteDetailOverlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.65);z-index:400;
+  align-items:flex-end;justify-content:center;padding:0}
+#noteDetailOverlay.show{display:flex}
+.note-detail-sheet{
+  background:var(--paper);
+  background-image:repeating-linear-gradient(transparent,transparent 29px,var(--paper-line) 29px,var(--paper-line) 30px);
+  border-radius:18px 18px 0 0;width:100%;max-width:480px;
+  max-height:88vh;display:flex;flex-direction:column;
+  box-shadow:0 -4px 24px rgba(0,0,0,0.3);
+}
+@media(min-width:768px){.note-detail-sheet{max-width:768px;border-radius:18px;margin-bottom:40px;max-height:80vh}}
+.note-detail-handle{width:40px;height:4px;background:#c0c8d0;border-radius:2px;margin:10px auto 0}
+.note-detail-hdr{padding:12px 16px 10px;border-bottom:1px solid var(--paper-line);
+  display:flex;justify-content:space-between;align-items:center;flex-shrink:0}
+.note-detail-title{font-family:'Jua',sans-serif;font-size:17px;color:var(--cover);flex:1;margin-right:8px}
+.note-detail-date{font-size:11px;color:var(--ink-soft);white-space:nowrap}
+.note-detail-close{background:none;border:none;font-size:22px;cursor:pointer;color:#888;padding:0 4px;line-height:1;flex-shrink:0}
+.note-detail-body{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;padding:14px 16px}
+.note-detail-content{font-size:14px;color:var(--ink);line-height:1.8;white-space:pre-wrap;margin-bottom:14px}
+.note-detail-img{width:100%;border-radius:8px;margin-bottom:12px}
+.note-detail-foot{padding:12px 16px;border-top:1px solid var(--paper-line);
+  display:flex;gap:8px;flex-shrink:0;background:var(--paper)}
+.note-detail-foot .btn-edit-sm,.note-detail-foot .btn-del-sm{flex:1;padding:10px;font-size:13px;border-radius:8px}
+/* 구 스타일 호환 */
 .note-acts{display:flex;gap:6px;margin-top:8px}
 
 /* ── PARENT CONSULT ── */
@@ -460,6 +566,42 @@ body{background:var(--cover);color:var(--ink);display:flex;flex-direction:column
   </nav>
 
 </div><!-- #appScreen -->
+
+<!-- 노트 상세 뷰 -->
+<div id="noteDetailOverlay">
+  <div class="note-detail-sheet">
+    <div class="note-detail-handle"></div>
+    <div class="note-detail-hdr">
+      <div class="note-detail-title" id="noteDetailTitle"></div>
+      <div class="note-detail-date" id="noteDetailDate"></div>
+      <button class="note-detail-close" onclick="closeNoteDetail()">✕</button>
+    </div>
+    <div class="note-detail-body" id="noteDetailBody"></div>
+    <div class="note-detail-foot">
+      <button class="btn-edit-sm" id="noteDetailEditBtn">✏️ 수정</button>
+      <button class="btn-del-sm" id="noteDetailDelBtn">🗑️ 삭제</button>
+    </div>
+  </div>
+</div>
+
+<!-- 관찰 상세 뷰 -->
+<div id="obsDetailOverlay">
+  <div class="obs-detail-sheet">
+    <div class="obs-detail-handle"></div>
+    <div class="obs-detail-hdr">
+      <div>
+        <div class="obs-detail-name" id="obsDetailName"></div>
+        <div class="obs-detail-date" id="obsDetailDate"></div>
+      </div>
+      <button class="obs-detail-close" onclick="closeObsDetail()">✕</button>
+    </div>
+    <div class="obs-detail-body" id="obsDetailBody"></div>
+    <div class="obs-detail-foot">
+      <button class="btn-edit-sm" id="obsDetailEditBtn">✏️ 수정</button>
+      <button class="btn-del-sm" id="obsDetailDelBtn">🗑️ 삭제</button>
+    </div>
+  </div>
+</div>
 
 <!-- 삭제 선택 모달 -->
 <div class="overlay" id="chkDelOverlay">
@@ -837,8 +979,9 @@ function deleteObs(id) {
 }
 function renderObs() {
   var list = document.getElementById('obsList');
+  var q = (document.getElementById('obsQ').value || '').toLowerCase();
   var sort = document.getElementById('obsSort').value;
-  var sorted = obs.slice().sort(function(a,b){
+  var sorted = obs.slice().filter(function(o){ return o.name.toLowerCase().includes(q); }).sort(function(a,b){
     if(sort==='d-desc') return b.date.localeCompare(a.date);
     if(sort==='d-asc')  return a.date.localeCompare(b.date);
     if(sort==='n-asc')  return a.name.localeCompare(b.name,'ko');
@@ -847,16 +990,35 @@ function renderObs() {
   });
   if(!sorted.length){ list.innerHTML='<div class="empty"><div class="ei">👁️</div><p>관찰 기록이 없습니다.</p></div>'; return; }
   list.innerHTML = sorted.map(function(o){
-    return '<div class="obs-card">'+
+    var hasMore = o.photo || (o.memo && o.memo.split('\n').length > 3) || (o.memo && o.memo.length > 120);
+    return '<div class="obs-card" onclick="openObsDetail(\''+o.id+'\')" >'+
       '<div class="obs-hdr"><span class="obs-name">👤 '+esc(o.name)+'</span><span class="obs-date-lbl">'+o.date+'</span></div>'+
-      (o.memo?'<div class="obs-memo">'+esc(o.memo)+'</div>':'')+
-      (o.photo?'<img class="obs-photo" src="'+o.photo+'" alt="">':'')+
-      '<div class="obs-acts">'+
-        '<button class="btn-edit-sm" onclick="openObsModal(\''+o.id+'\')">✏️ 수정</button>'+
-        '<button class="btn-del-sm" onclick="deleteObs(\''+o.id+'\')">🗑️ 삭제</button>'+
-      '</div></div>';
+      (o.memo?'<div class="obs-memo-preview">'+esc(o.memo)+'</div>':'')+
+      (o.photo?'<img class="obs-thumb" src="'+o.photo+'" alt="">':'')+
+      (hasMore?'<div class="obs-more-hint">더 보기 ▾</div>':'')+
+      '</div>';
   }).join('');
 }
+function openObsDetail(id) {
+  var o = obs.find(function(x){ return x.id===id; });
+  if(!o) return;
+  document.getElementById('obsDetailName').textContent = '👤 ' + o.name;
+  document.getElementById('obsDetailDate').textContent = o.date;
+  var body = '';
+  if(o.memo) body += '<div class="obs-detail-memo">'+esc(o.memo)+'</div>';
+  if(o.photo) body += '<img class="obs-detail-img" src="'+o.photo+'" alt="">';
+  document.getElementById('obsDetailBody').innerHTML = body || '<p style="color:#aaa;font-size:13px">내용이 없습니다.</p>';
+  document.getElementById('obsDetailEditBtn').onclick = function(){ closeObsDetail(); openObsModal(id); };
+  document.getElementById('obsDetailDelBtn').onclick = function(){ closeObsDetail(); deleteObs(id); };
+  document.getElementById('obsDetailBody').scrollTop = 0;
+  document.getElementById('obsDetailOverlay').classList.add('show');
+}
+function closeObsDetail() {
+  document.getElementById('obsDetailOverlay').classList.remove('show');
+}
+document.getElementById('obsDetailOverlay').addEventListener('click', function(e){
+  if(e.target === this) closeObsDetail();
+});
 
 function chkAddStudent() {
   var raw = prompt('학생 이름 입력 (여러 명은 쉼표로 구분):');
@@ -1093,18 +1255,40 @@ function renderNotes() {
   var list = document.getElementById('noteList');
   if(!list) return;
   if(!notes.length){ list.innerHTML='<div class="empty"><div class="ei">📝</div><p>노트가 없습니다.</p></div>'; return; }
-  list.innerHTML = notes.map(function(n){
-    return '<div class="note-card">'+
-      (n.title?'<div class="note-card-title">'+esc(n.title)+'</div>':'')+
-      '<div class="note-card-body">'+esc(n.content)+'</div>'+
-      (n.photo?'<img class="obs-photo" src="'+n.photo+'" alt="">':'')+
-      '<div class="note-card-date">'+(n.updatedAt?n.updatedAt.slice(0,10):'')+'</div>'+
-      '<div class="note-acts">'+
-        '<button class="btn-edit-sm" onclick="openNoteModal('+n.id+')">✏️ 수정</button>'+
-        '<button class="btn-del-sm" onclick="deleteNote('+n.id+')">🗑️ 삭제</button>'+
-      '</div></div>';
+  var cards = notes.map(function(n){
+    var dateStr = n.updatedAt ? n.updatedAt.slice(0,10) : '';
+    return '<div class="note-card" onclick="openNoteDetail('+n.id+')">'+
+      '<div class="note-card-tab"></div>'+
+      '<div class="note-card-inner">'+
+        (n.title ? '<div class="note-card-title">'+esc(n.title)+'</div>' : '')+
+        '<div class="note-card-body">'+esc(n.content)+'</div>'+
+        '<div class="note-card-date">'+dateStr+'</div>'+
+      '</div>'+
+      (n.photo ? '<img class="note-card-thumb" src="'+n.photo+'" alt="">' : '')+
+    '</div>';
   }).join('');
+  list.innerHTML = '<div class="note-grid">'+cards+'</div>';
 }
+function openNoteDetail(id) {
+  var n = notes.find(function(x){ return x.id===id; });
+  if(!n) return;
+  document.getElementById('noteDetailTitle').textContent = n.title || '📝 노트';
+  document.getElementById('noteDetailDate').textContent = n.updatedAt ? n.updatedAt.slice(0,10) : '';
+  var body = '';
+  if(n.content) body += '<div class="note-detail-content">'+esc(n.content)+'</div>';
+  if(n.photo)   body += '<img class="note-detail-img" src="'+n.photo+'" alt="">';
+  document.getElementById('noteDetailBody').innerHTML = body || '<p style="color:#aaa;font-size:13px">내용이 없습니다.</p>';
+  document.getElementById('noteDetailEditBtn').onclick = function(){ closeNoteDetail(); openNoteModal(id); };
+  document.getElementById('noteDetailDelBtn').onclick  = function(){ closeNoteDetail(); deleteNote(id); };
+  document.getElementById('noteDetailBody').scrollTop = 0;
+  document.getElementById('noteDetailOverlay').classList.add('show');
+}
+function closeNoteDetail() {
+  document.getElementById('noteDetailOverlay').classList.remove('show');
+}
+document.getElementById('noteDetailOverlay').addEventListener('click', function(e){
+  if(e.target === this) closeNoteDetail();
+});
 
 function openParentModal(id) {
   document.getElementById('parentEditId').value = id || '';
