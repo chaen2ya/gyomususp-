@@ -15,6 +15,8 @@
 @font-face{font-family:'OkDanDan';src:url('./OkDanDan-Bold.ttf') format('truetype');}
 @font-face{font-family:'MyHandwriting';src:url('./365내가쓴글씨.ttf') format('truetype');}
 </style>
+<!-- Google Identity Services -->
+<script src="https://accounts.google.com/gsi/client" async defer></script>
 <!-- SheetJS (Excel 내보내기) -->
 <script src="https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js"></script>
 <!-- Firebase SDK -->
@@ -134,7 +136,54 @@ body{background:var(--cover);color:var(--ink);display:flex;flex-direction:column
   font-size:13px;font-family:'MyHandwriting','Noto Sans KR',sans-serif;background:#fff}
 .btn-primary{padding:8px 14px;background:var(--cover);color:#fff;border:none;
   border-radius:6px;font-size:13px;font-family:'MyHandwriting','Noto Sans KR',sans-serif;cursor:pointer;white-space:nowrap}
-#calFrame iframe{width:100%;height:calc(100vh - 210px);border:none;border-radius:8px}
+
+/* 달력 네비게이션 */
+.cal-nav{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px}
+.cal-nav-title{font-family:'Jua',sans-serif;font-size:18px;color:var(--cover)}
+.cal-nav-btns{display:flex;gap:6px}
+.cal-nav-btn{background:none;border:1px solid #c8d0d8;border-radius:6px;
+  padding:5px 12px;font-size:16px;cursor:pointer;color:var(--cover)}
+.cal-nav-btn:active{background:#e8ecf4}
+.cal-today-btn{background:var(--cover);color:#fff;border:none;border-radius:6px;
+  padding:5px 12px;font-size:12px;cursor:pointer;font-family:'MyHandwriting','Noto Sans KR',sans-serif}
+
+/* 달력 그리드 */
+.cal-grid{width:100%;border-collapse:collapse;}
+.cal-grid th{text-align:center;font-size:11px;font-weight:600;color:var(--ink-soft);
+  padding:4px 0;border-bottom:1px solid var(--paper-line)}
+.cal-grid th:first-child{color:#e53935}
+.cal-grid th:last-child{color:#1565c0}
+.cal-day{vertical-align:top;border:1px solid var(--paper-line);padding:2px;
+  height:80px;cursor:pointer;position:relative;transition:background .1s}
+.cal-day:hover{background:#f0f4ff}
+.cal-day.other-month{background:#f8f8f6}
+.cal-day.today .cal-day-num{background:var(--cover);color:#fff;border-radius:50%;
+  width:22px;height:22px;display:flex;align-items:center;justify-content:center}
+.cal-day-num{font-size:11px;font-weight:600;color:var(--ink);margin-bottom:2px;
+  width:22px;height:22px;display:flex;align-items:center;justify-content:center}
+.cal-day.sunday .cal-day-num{color:#e53935}
+.cal-day.saturday .cal-day-num{color:#1565c0}
+.cal-day.other-month .cal-day-num{color:#bbb}
+/* 이벤트 칩 */
+.cal-evt{font-size:9px;line-height:1.3;padding:1px 4px;border-radius:3px;
+  margin-bottom:1px;overflow:hidden;white-space:nowrap;text-overflow:ellipsis;
+  color:#fff;cursor:pointer;}
+.cal-evt-more{font-size:9px;color:var(--ink-soft);padding:0 2px}
+
+/* 이벤트 상세 팝업 */
+.cal-evt-popup{display:none;position:fixed;z-index:500;background:#fff;
+  border-radius:10px;box-shadow:0 4px 20px rgba(0,0,0,0.2);padding:14px;
+  min-width:200px;max-width:280px}
+.cal-evt-popup.show{display:block}
+.cal-evt-popup-title{font-size:14px;font-weight:700;color:var(--cover);margin-bottom:6px}
+.cal-evt-popup-time{font-size:12px;color:var(--ink-soft);margin-bottom:4px}
+.cal-evt-popup-cal{font-size:11px;color:var(--ink-soft)}
+.cal-evt-popup-close{position:absolute;top:8px;right:10px;background:none;border:none;
+  font-size:18px;cursor:pointer;color:#888}
+
+/* 로딩 */
+.cal-loading{text-align:center;padding:40px;color:var(--ink-soft);font-size:13px}
+.cal-error{background:#fce8e6;border-radius:8px;padding:14px;color:#c0392b;font-size:13px;margin-top:8px}
 
 /* ── TODO ── */
 .todo-row{display:flex;gap:6px;margin-bottom:10px;flex-wrap:wrap}
@@ -481,18 +530,24 @@ body{background:var(--cover);color:var(--ink);display:flex;flex-direction:column
     <!-- ① 학사일정 -->
     <section id="sec-cal" class="tab-sec active">
       <h2 class="sec-title">📅 학사일정</h2>
-      <div class="cal-info" id="calSetupBox">
-        <strong>📌 구글 캘린더 연결 설정</strong>
-        표시할 캘린더를 추가하세요. 캘린더 ID는 구글 캘린더 → 설정 → 해당 캘린더 → <b>캘린더 통합</b>에서 확인할 수 있습니다.
-        <div id="calIdList" style="margin-top:10px;display:flex;flex-direction:column;gap:6px"></div>
-        <div class="cal-id-row" style="margin-top:8px">
-          <input type="text" id="calIdInput" placeholder="캘린더 ID 입력 (예: abc@group.calendar.google.com)">
-          <button class="btn-primary" onclick="calAddId()">추가</button>
-        </div>
-        <button class="btn-primary" onclick="calApplyAll()" style="margin-top:10px;width:100%;padding:9px">✅ 적용</button>
+      <!-- 설정 박스 -->
+      <div class="cal-info" id="calSetupBox" style="display:none">
+        <strong>📌 표시할 캘린더 선택</strong>
+        아래 목록에서 보고 싶은 캘린더를 체크하세요.
+        <div id="calPickerList" style="margin-top:10px;display:flex;flex-direction:column;gap:6px"></div>
+        <button class="btn-primary" onclick="calSaveSelection()" style="margin-top:10px;width:100%;padding:9px">✅ 저장</button>
       </div>
-      <div id="calFrame"></div>
-      <button id="calEditBtn" onclick="calOpenEdit()" style="display:none;margin-top:8px;width:100%;padding:8px;background:#f0f4ff;border:1px solid #c0ccd8;border-radius:6px;font-size:12px;font-family:'MyHandwriting','Noto Sans KR',sans-serif;cursor:pointer;color:#2a6db5">⚙️ 캘린더 설정 변경</button>
+      <!-- 달력 본체 -->
+      <div id="calBody">
+        <div class="cal-loading">📅 캘린더 불러오는 중...</div>
+      </div>
+      <!-- 이벤트 팝업 -->
+      <div class="cal-evt-popup" id="calEvtPopup">
+        <button class="cal-evt-popup-close" onclick="closeCalPopup()">✕</button>
+        <div class="cal-evt-popup-title" id="calEvtTitle"></div>
+        <div class="cal-evt-popup-time" id="calEvtTime"></div>
+        <div class="cal-evt-popup-cal" id="calEvtCal"></div>
+      </div>
     </section>
 
     <!-- ② 할 일 목록 -->
@@ -836,6 +891,12 @@ function showApp() {
   var yr = new Date().getFullYear();
   document.getElementById('yearLabel').textContent = yr + '학년도';
   document.getElementById('todoDt').value = todayStr();
+  // Google Calendar API 초기화
+  if(typeof google !== 'undefined' && google.accounts) {
+    calInit();
+  } else {
+    window.addEventListener('load', function(){ if(typeof google!=='undefined') calInit(); });
+  }
 }
 
 var appReady = false;
@@ -890,17 +951,8 @@ function setupListeners() {
     onDocLoaded();
   }));
   unsubscribers.push(uref('data/settings').onSnapshot(function(snap) {
-    if(snap.exists) {
-      var d = snap.data();
-      // 신규: calIds 배열 / 구버전: calId 단일값 마이그레이션
-      var ids = d.calIds || (d.calId ? [d.calId] : []);
-      if(ids.length) {
-        calIds = ids;
-        renderCalIdList();
-        buildCalFrame(ids);
-        document.getElementById('calSetupBox').style.display = 'none';
-        document.getElementById('calEditBtn').style.display = '';
-      }
+    if(snap.exists && snap.data().calSelected) {
+      calSelected = snap.data().calSelected;
     }
     onDocLoaded();
   }));
@@ -944,51 +996,233 @@ function goTab(id, btn) {
   }
 }
 
-var calIds = [];
+/* ── Google Calendar API ── */
+var CAL_CLIENT_ID = '1020666206779-i1j503oro5uqgo4tjghthjse9sva46ff.apps.googleusercontent.com';
+var CAL_SCOPE = 'https://www.googleapis.com/auth/calendar.readonly';
+var calAccessToken = null;
+var calList = [];        // 전체 캘린더 목록
+var calSelected = [];    // 선택된 캘린더 ID 목록
+var calEvents = [];      // 이벤트 캐시
+var calYear, calMonth;   // 현재 표시 연/월
+var calTokenClient = null;
 
-function renderCalIdList() {
-  var box = document.getElementById('calIdList');
-  if(!box) return;
-  if(!calIds.length) { box.innerHTML = '<p style="font-size:12px;color:#aaa">추가된 캘린더가 없습니다.</p>'; return; }
-  box.innerHTML = calIds.map(function(id, i) {
-    return '<div style="display:flex;align-items:center;gap:6px;background:#fff;border:1px solid #dde;border-radius:6px;padding:6px 10px">'+
-      '<span style="flex:1;font-size:12px;color:#2c3e50;word-break:break-all">'+esc(id)+'</span>'+
-      '<button onclick="calRemoveId('+i+')" style="background:#fce8e6;border:none;border-radius:4px;color:#c0392b;font-size:11px;padding:3px 7px;cursor:pointer;flex-shrink:0;font-family:\'MyHandwriting\',\'Noto Sans KR\',sans-serif">삭제</button>'+
-    '</div>';
+function calInit() {
+  var now = new Date();
+  calYear = now.getFullYear();
+  calMonth = now.getMonth();
+  // Google Identity Services 초기화
+  calTokenClient = google.accounts.oauth2.initTokenClient({
+    client_id: CAL_CLIENT_ID,
+    scope: CAL_SCOPE,
+    callback: function(resp) {
+      if(resp.error) { calShowError('구글 로그인 실패: ' + resp.error); return; }
+      calAccessToken = resp.access_token;
+      calFetchCalendars();
+    }
+  });
+  // Firestore에서 선택 캘린더 로드 후 토큰 요청
+  uref('data/settings').get().then(function(snap) {
+    if(snap.exists && snap.data().calSelected) {
+      calSelected = snap.data().calSelected;
+    }
+    calTokenClient.requestAccessToken({prompt: ''});
+  });
+}
+
+function calFetchCalendars() {
+  fetch('https://www.googleapis.com/calendar/v3/users/me/calendarList?maxResults=50', {
+    headers: { Authorization: 'Bearer ' + calAccessToken }
+  }).then(function(r){ return r.json(); }).then(function(data) {
+    if(data.error) { calShowError(data.error.message); return; }
+    calList = data.items || [];
+    // 선택 목록이 없으면 전체 선택
+    if(!calSelected.length) calSelected = calList.map(function(c){ return c.id; });
+    calFetchEvents();
+  }).catch(function(e){ calShowError(e.message); });
+}
+
+function calFetchEvents() {
+  var start = new Date(calYear, calMonth, 1).toISOString();
+  var end   = new Date(calYear, calMonth+1, 1).toISOString();
+  var selected = calList.filter(function(c){ return calSelected.indexOf(c.id) >= 0; });
+  if(!selected.length) { calEvents = []; calRender(); return; }
+
+  var promises = selected.map(function(cal) {
+    var url = 'https://www.googleapis.com/calendar/v3/calendars/'+
+      encodeURIComponent(cal.id)+'/events?timeMin='+start+'&timeMax='+end+
+      '&singleEvents=true&orderBy=startTime&maxResults=200';
+    return fetch(url, { headers: { Authorization: 'Bearer ' + calAccessToken } })
+      .then(function(r){ return r.json(); })
+      .then(function(data) {
+        return (data.items || []).map(function(ev) {
+          return Object.assign(ev, { _calColor: cal.backgroundColor||'#4285f4', _calName: cal.summary });
+        });
+      });
+  });
+
+  Promise.all(promises).then(function(results) {
+    calEvents = [].concat.apply([], results);
+    calRender();
+  }).catch(function(e){ calShowError(e.message); });
+}
+
+function calRender() {
+  var body = document.getElementById('calBody');
+  var now = new Date();
+  var firstDay = new Date(calYear, calMonth, 1).getDay();
+  var daysInMonth = new Date(calYear, calMonth+1, 0).getDate();
+  var daysInPrev  = new Date(calYear, calMonth, 0).getDate();
+  var months = ['1월','2월','3월','4월','5월','6월','7월','8월','9월','10월','11월','12월'];
+  var days   = ['일','월','화','수','목','금','토'];
+
+  var html = '<div class="cal-nav">'+
+    '<div class="cal-nav-btns">'+
+      '<button class="cal-nav-btn" onclick="calMove(-1)">‹</button>'+
+      '<button class="cal-today-btn" onclick="calGoToday()">오늘</button>'+
+      '<button class="cal-nav-btn" onclick="calMove(1)">›</button>'+
+    '</div>'+
+    '<div class="cal-nav-title">'+calYear+'년 '+months[calMonth]+'</div>'+
+    '<button onclick="calOpenSettings()" style="background:none;border:none;cursor:pointer;font-size:18px;padding:4px">⚙️</button>'+
+  '</div>';
+
+  html += '<table class="cal-grid"><thead><tr>';
+  days.forEach(function(d){ html += '<th>'+d+'</th>'; });
+  html += '</tr></thead><tbody>';
+
+  var cell = 0, date = 1;
+  for(var row = 0; row < 6; row++) {
+    if(date > daysInMonth) break;
+    html += '<tr>';
+    for(var col = 0; col < 7; col++) {
+      var isToday = false, dayNum, isOther = false, isPrev = false;
+      if(cell < firstDay) {
+        dayNum = daysInPrev - firstDay + cell + 1;
+        isOther = true; isPrev = true;
+      } else if(date > daysInMonth) {
+        dayNum = date - daysInMonth;
+        isOther = true; date++;
+      } else {
+        dayNum = date;
+        isToday = (calYear===now.getFullYear() && calMonth===now.getMonth() && date===now.getDate());
+        date++;
+      }
+      var cls = 'cal-day';
+      if(isOther) cls += ' other-month';
+      if(isToday) cls += ' today';
+      if(col===0) cls += ' sunday';
+      if(col===6) cls += ' saturday';
+
+      // 이 날의 이벤트
+      var targetDate;
+      if(isPrev) targetDate = new Date(calYear, calMonth-1, dayNum);
+      else if(isOther) targetDate = new Date(calYear, calMonth+1, dayNum - (new Date(calYear,calMonth+1,0).getDate()) );
+      else targetDate = new Date(calYear, calMonth, dayNum);
+
+      var dateStr = targetDate.getFullYear()+'-'+
+        String(targetDate.getMonth()+1).padStart(2,'0')+'-'+
+        String(targetDate.getDate()).padStart(2,'0');
+
+      var dayEvts = calEvents.filter(function(ev) {
+        var s = ev.start && (ev.start.date || ev.start.dateTime||'').slice(0,10);
+        return s === dateStr;
+      });
+
+      html += '<td class="'+cls+'" onclick="calDayClick(event,\''+dateStr+'\')">';
+      html += '<div class="cal-day-num">'+dayNum+'</div>';
+      var maxShow = 2;
+      dayEvts.slice(0, maxShow).forEach(function(ev) {
+        var title = esc(ev.summary||'(제목없음)');
+        var color = ev._calColor || '#4285f4';
+        html += '<div class="cal-evt" style="background:'+color+'" '+
+          'onclick="event.stopPropagation();calEvtClick(event,\''+esc(ev.id||'')+'\',\''+esc(ev.summary||'')+'\',\''+esc(ev._calName||'')+'\',\''+esc(ev.start&&(ev.start.date||ev.start.dateTime)||'')+'\',\''+esc(ev.end&&(ev.end.date||ev.end.dateTime)||'')+'\',\''+color+'\')" '+
+          '>'+title+'</div>';
+      });
+      if(dayEvts.length > maxShow) {
+        html += '<div class="cal-evt-more">+' + (dayEvts.length-maxShow) + '개</div>';
+      }
+      html += '</td>';
+      cell++;
+    }
+    html += '</tr>';
+  }
+  html += '</tbody></table>';
+  body.innerHTML = html;
+}
+
+function calMove(dir) {
+  calMonth += dir;
+  if(calMonth < 0)  { calMonth = 11; calYear--; }
+  if(calMonth > 11) { calMonth = 0;  calYear++; }
+  document.getElementById('calBody').innerHTML = '<div class="cal-loading">📅 불러오는 중...</div>';
+  calFetchEvents();
+}
+function calGoToday() {
+  var now = new Date();
+  calYear = now.getFullYear(); calMonth = now.getMonth();
+  document.getElementById('calBody').innerHTML = '<div class="cal-loading">📅 불러오는 중...</div>';
+  calFetchEvents();
+}
+function calDayClick(e, dateStr) { /* 날짜 클릭 - 확장 가능 */ }
+function calEvtClick(e, id, title, calName, start, end, color) {
+  var popup = document.getElementById('calEvtPopup');
+  document.getElementById('calEvtTitle').textContent = title || '(제목없음)';
+  document.getElementById('calEvtCal').textContent = '📅 ' + calName;
+  // 날짜/시간 포맷
+  var timeStr = '';
+  if(start) {
+    if(start.length === 10) {
+      timeStr = start;
+      if(end) { var endD = new Date(end); endD.setDate(endD.getDate()-1); timeStr += ' ~ ' + endD.toISOString().slice(0,10); }
+    } else {
+      var sd = new Date(start);
+      timeStr = sd.toLocaleString('ko-KR', {month:'numeric',day:'numeric',hour:'2-digit',minute:'2-digit'});
+    }
+  }
+  document.getElementById('calEvtTime').textContent = timeStr;
+  document.getElementById('calEvtTitle').style.color = color || '#1c2340';
+  // 팝업 위치
+  var rect = e.target.getBoundingClientRect();
+  popup.style.left = Math.min(rect.left, window.innerWidth-290) + 'px';
+  popup.style.top  = (rect.bottom+4) + 'px';
+  popup.classList.add('show');
+}
+function closeCalPopup() { document.getElementById('calEvtPopup').classList.remove('show'); }
+document.addEventListener('click', function(e){
+  var p = document.getElementById('calEvtPopup');
+  if(p && p.classList.contains('show') && !p.contains(e.target)) closeCalPopup();
+});
+
+function calOpenSettings() {
+  var list = document.getElementById('calPickerList');
+  list.innerHTML = calList.map(function(c) {
+    var checked = calSelected.indexOf(c.id) >= 0 ? 'checked' : '';
+    return '<label style="display:flex;align-items:center;gap:8px;padding:6px 8px;background:#fff;border:1px solid #eee;border-radius:6px;cursor:pointer">'+
+      '<input type="checkbox" data-cid="'+esc(c.id)+'" '+checked+' style="width:16px;height:16px;accent-color:'+esc(c.backgroundColor||'#4285f4')+'">'+
+      '<span style="width:12px;height:12px;border-radius:50%;background:'+esc(c.backgroundColor||'#4285f4')+';flex-shrink:0"></span>'+
+      '<span style="font-size:13px;color:#2c3e50">'+esc(c.summary)+'</span>'+
+    '</label>';
   }).join('');
-}
-function calAddId() {
-  var val = document.getElementById('calIdInput').value.trim();
-  if(!val) { alert('캘린더 ID를 입력해주세요.'); return; }
-  if(calIds.indexOf(val) >= 0) { alert('이미 추가된 캘린더입니다.'); return; }
-  calIds.push(val);
-  document.getElementById('calIdInput').value = '';
-  renderCalIdList();
-}
-function calRemoveId(i) {
-  calIds.splice(i, 1);
-  renderCalIdList();
-}
-function calApplyAll() {
-  if(!calIds.length) { alert('캘린더를 하나 이상 추가해주세요.'); return; }
-  buildCalFrame(calIds);
-  uref('data/settings').set({calIds: calIds}, {merge: true});
-  document.getElementById('calSetupBox').style.display = 'none';
-  document.getElementById('calEditBtn').style.display = '';
-}
-function calOpenEdit() {
-  renderCalIdList();
   document.getElementById('calSetupBox').style.display = '';
-  document.getElementById('calEditBtn').style.display = 'none';
 }
-function buildCalFrame(ids) {
-  if(!Array.isArray(ids)) ids = [ids];
-  var base = 'https://calendar.google.com/calendar/embed?ctz=Asia%2FSeoul&hl=ko&mode=MONTH&showTitle=0&showNav=1&showPrint=0&showTabs=0&showCalendars=1';
-  var srcs = ids.map(function(id){ return '&src='+encodeURIComponent(id); }).join('');
-  var url = base + srcs;
-  document.getElementById('calFrame').innerHTML =
-    '<iframe src="'+url+'" style="width:100%;height:calc(100vh - 210px);border:none;border-radius:8px;"></iframe>';
+function calSaveSelection() {
+  calSelected = Array.from(document.querySelectorAll('#calPickerList input:checked')).map(function(el){ return el.dataset.cid; });
+  uref('data/settings').set({calSelected: calSelected}, {merge:true});
+  document.getElementById('calSetupBox').style.display = 'none';
+  document.getElementById('calBody').innerHTML = '<div class="cal-loading">📅 불러오는 중...</div>';
+  calFetchEvents();
 }
+function calShowError(msg) {
+  document.getElementById('calBody').innerHTML = '<div class="cal-error">⚠️ ' + esc(msg) + '<br><br><button onclick="calInit()" style="padding:7px 14px;background:var(--cover);color:#fff;border:none;border-radius:6px;cursor:pointer;font-family:\'MyHandwriting\',\'Noto Sans KR\',sans-serif">다시 시도</button></div>';
+}
+
+// 기존 embed 방식 함수들 제거 후 더미로 유지 (하위 호환)
+var calIds = [];
+function renderCalIdList(){}
+function calAddId(){}
+function calRemoveId(){}
+function calApplyAll(){}
+function calOpenEdit(){}
+function buildCalFrame(){}
 
 function addTodo() {
   var txt = document.getElementById('todoTxt').value.trim();
