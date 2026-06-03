@@ -155,7 +155,7 @@ body{background:var(--cover);color:var(--ink);display:flex;flex-direction:column
 .cal-grid th:nth-child(6){color:#1565c0}
 .cal-grid th:nth-child(7){color:#e53935}
 .cal-day{vertical-align:top;border:1px solid #dde2ea;padding:2px;
-  height:80px;cursor:pointer;position:relative;transition:background .1s;background:#fff}
+  min-height:80px;height:auto;cursor:pointer;position:relative;transition:background .1s;background:#fff}
 .cal-day:hover{background:#f0f4ff}
 .cal-day.other-month{background:#f5f5f3}
 .cal-day.saturday{background:#e8f4fd}
@@ -552,6 +552,10 @@ body{background:var(--cover);color:var(--ink);display:flex;flex-direction:column
         <div class="cal-evt-popup-title" id="calEvtTitle"></div>
         <div class="cal-evt-popup-time" id="calEvtTime"></div>
         <div class="cal-evt-popup-cal" id="calEvtCal"></div>
+        <div style="margin-top:10px;display:flex;gap:6px">
+          <button class="btn-edit-sm" id="calEvtEditBtn">✏️ 수정</button>
+          <button class="btn-del-sm" id="calEvtDelBtn">🗑️ 삭제</button>
+        </div>
       </div>
     </section>
 
@@ -682,6 +686,38 @@ body{background:var(--cover);color:var(--ink);display:flex;flex-direction:column
   </nav>
 
 </div><!-- #appScreen -->
+
+<!-- 캘린더 일정 추가/수정 모달 -->
+<div class="overlay" id="calEventOverlay">
+  <div class="modal">
+    <div class="modal-title" id="calEventModalTitle">📅 새 일정</div>
+    <input type="hidden" id="calEventId">
+    <input type="hidden" id="calEventCalId">
+    <div class="fg">
+      <label>캘린더 선택</label>
+      <select id="calEventCalSelect" style="width:100%;padding:9px 11px;border:1px solid #c8d0d8;border-radius:6px;font-size:14px;font-family:'MyHandwriting','Noto Sans KR',sans-serif;background:#fff"></select>
+    </div>
+    <div class="fg"><label>제목</label><input type="text" id="calEventTitle" placeholder="일정 제목"></div>
+    <div class="fg" style="display:flex;gap:8px">
+      <div style="flex:1"><label>시작일</label><input type="date" id="calEventStart" style="width:100%;padding:9px;border:1px solid #c8d0d8;border-radius:6px;font-size:13px"></div>
+      <div style="flex:1"><label>종료일</label><input type="date" id="calEventEnd" style="width:100%;padding:9px;border:1px solid #c8d0d8;border-radius:6px;font-size:13px"></div>
+    </div>
+    <div class="fg">
+      <label><input type="checkbox" id="calEventAllDay" checked onchange="calToggleTime(this)" style="margin-right:6px">종일 일정</label>
+    </div>
+    <div id="calEventTimeRow" style="display:none">
+      <div class="fg" style="display:flex;gap:8px">
+        <div style="flex:1"><label>시작 시간</label><input type="time" id="calEventStartTime" style="width:100%;padding:9px;border:1px solid #c8d0d8;border-radius:6px;font-size:13px"></div>
+        <div style="flex:1"><label>종료 시간</label><input type="time" id="calEventEndTime" style="width:100%;padding:9px;border:1px solid #c8d0d8;border-radius:6px;font-size:13px"></div>
+      </div>
+    </div>
+    <div class="fg"><label>메모 (선택)</label><textarea id="calEventDesc" placeholder="메모..." style="height:70px"></textarea></div>
+    <div class="modal-btns">
+      <button class="btn-cancel" onclick="closeOverlay('calEventOverlay')">취소</button>
+      <button class="btn-save" onclick="calSaveEvent()">저장</button>
+    </div>
+  </div>
+</div>
 
 <!-- 노트 상세 뷰 -->
 <div id="noteDetailOverlay">
@@ -1003,7 +1039,7 @@ function goTab(id, btn) {
 
 /* ── Google Calendar API ── */
 var CAL_CLIENT_ID = '1020666206779-i1j503oro5uqgo4tjghthjse9sva46ff.apps.googleusercontent.com';
-var CAL_SCOPE = 'https://www.googleapis.com/auth/calendar.readonly';
+var CAL_SCOPE = 'https://www.googleapis.com/auth/calendar';
 var calAccessToken = null;
 var calList = [];        // 전체 캘린더 목록
 var calSelected = [];    // 선택된 캘린더 ID 목록
@@ -1060,7 +1096,7 @@ function calFetchEvents() {
       .then(function(r){ return r.json(); })
       .then(function(data) {
         return (data.items || []).map(function(ev) {
-          return Object.assign(ev, { _calColor: cal.backgroundColor||'#4285f4', _calName: cal.summary });
+          return Object.assign(ev, { _calColor: cal.backgroundColor||'#4285f4', _calName: cal.summary, _calId: cal.id });
         });
       });
   });
@@ -1087,7 +1123,10 @@ function calRender() {
       '<button class="cal-nav-btn" onclick="calMove(1)">›</button>'+
     '</div>'+
     '<div class="cal-nav-title">'+calYear+'년 '+months[calMonth]+'</div>'+
-    '<button onclick="calOpenSettings()" style="background:none;border:none;cursor:pointer;font-size:18px;padding:4px">⚙️</button>'+
+    '<div style="display:flex;gap:6px">'+
+      '<button onclick="calOpenAddModal()" style="background:var(--cover);color:#fff;border:none;border-radius:6px;padding:5px 10px;font-size:18px;cursor:pointer;line-height:1">+</button>'+
+      '<button onclick="calOpenSettings()" style="background:none;border:none;cursor:pointer;font-size:18px;padding:4px">⚙️</button>'+
+    '</div>'+
   '</div>';
 
   html += '<div class="cal-grid-wrap"><table class="cal-grid"><thead><tr>';
@@ -1134,12 +1173,12 @@ function calRender() {
 
       html += '<td class="'+cls+'" onclick="calDayClick(event,\''+dateStr+'\')">';
       html += '<div class="cal-day-num">'+dayNum+'</div>';
-      var maxShow = 2;
+      var maxShow = dayEvts.length; // 전체 표시
       dayEvts.slice(0, maxShow).forEach(function(ev) {
         var title = esc(ev.summary||'(제목없음)');
         var color = ev._calColor || '#4285f4';
         html += '<div class="cal-evt" style="background:'+color+'" '+
-          'onclick="event.stopPropagation();calEvtClick(event,\''+esc(ev.id||'')+'\',\''+esc(ev.summary||'')+'\',\''+esc(ev._calName||'')+'\',\''+esc(ev.start&&(ev.start.date||ev.start.dateTime)||'')+'\',\''+esc(ev.end&&(ev.end.date||ev.end.dateTime)||'')+'\',\''+color+'\')" '+
+          'onclick="event.stopPropagation();calEvtClick(event,\''+esc(ev.id||'')+'\',\''+esc(ev._calId||'')+'\',\''+esc(ev.summary||'')+'\',\''+esc(ev._calName||'')+'\',\''+esc(ev.start&&(ev.start.date||ev.start.dateTime)||'')+'\',\''+esc(ev.end&&(ev.end.date||ev.end.dateTime)||'')+'\',\''+color+'\')" '+
           '>'+title+'</div>';
       });
       if(dayEvts.length > maxShow) {
@@ -1167,12 +1206,12 @@ function calGoToday() {
   document.getElementById('calBody').innerHTML = '<div class="cal-loading">📅 불러오는 중...</div>';
   calFetchEvents();
 }
-function calDayClick(e, dateStr) { /* 날짜 클릭 - 확장 가능 */ }
-function calEvtClick(e, id, title, calName, start, end, color) {
+function calDayClick(e, dateStr) { calOpenAddModal(dateStr); }
+function calEvtClick(e, id, calId, title, calName, start, end, color) {
   var popup = document.getElementById('calEvtPopup');
   document.getElementById('calEvtTitle').textContent = title || '(제목없음)';
+  document.getElementById('calEvtTitle').style.color = color || '#1c2340';
   document.getElementById('calEvtCal').textContent = '📅 ' + calName;
-  // 날짜/시간 포맷
   var timeStr = '';
   if(start) {
     if(start.length === 10) {
@@ -1184,12 +1223,111 @@ function calEvtClick(e, id, title, calName, start, end, color) {
     }
   }
   document.getElementById('calEvtTime').textContent = timeStr;
-  document.getElementById('calEvtTitle').style.color = color || '#1c2340';
-  // 팝업 위치
+  // 수정/삭제 버튼
+  document.getElementById('calEvtEditBtn').onclick = function(){ closeCalPopup(); calOpenEditModal(id, calId); };
+  document.getElementById('calEvtDelBtn').onclick  = function(){ closeCalPopup(); calDeleteEvent(id, calId); };
   var rect = e.target.getBoundingClientRect();
   popup.style.left = Math.min(rect.left, window.innerWidth-290) + 'px';
   popup.style.top  = (rect.bottom+4) + 'px';
   popup.classList.add('show');
+}
+
+function calPopulateCalSelect(selectedId) {
+  var sel = document.getElementById('calEventCalSelect');
+  sel.innerHTML = calList.map(function(c) {
+    var opt = '<option value="'+esc(c.id)+'"'+(c.id===selectedId?' selected':'')+'>'+esc(c.summary)+'</option>';
+    return opt;
+  }).join('');
+}
+function calToggleTime(cb) {
+  document.getElementById('calEventTimeRow').style.display = cb.checked ? 'none' : '';
+}
+function calOpenAddModal(dateStr) {
+  document.getElementById('calEventModalTitle').textContent = '📅 새 일정';
+  document.getElementById('calEventId').value = '';
+  document.getElementById('calEventCalId').value = '';
+  var today = dateStr || todayStr();
+  document.getElementById('calEventTitle').value = '';
+  document.getElementById('calEventStart').value = today;
+  document.getElementById('calEventEnd').value = today;
+  document.getElementById('calEventAllDay').checked = true;
+  document.getElementById('calEventTimeRow').style.display = 'none';
+  document.getElementById('calEventStartTime').value = '09:00';
+  document.getElementById('calEventEndTime').value = '10:00';
+  document.getElementById('calEventDesc').value = '';
+  calPopulateCalSelect('primary');
+  document.getElementById('calEventOverlay').classList.add('show');
+}
+function calOpenEditModal(evtId, calId) {
+  var ev = calEvents.find(function(e){ return e.id === evtId; });
+  if(!ev) return;
+  document.getElementById('calEventModalTitle').textContent = '📅 일정 수정';
+  document.getElementById('calEventId').value = evtId;
+  document.getElementById('calEventCalId').value = calId;
+  document.getElementById('calEventTitle').value = ev.summary || '';
+  document.getElementById('calEventDesc').value = ev.description || '';
+  var isAllDay = !!(ev.start && ev.start.date);
+  document.getElementById('calEventAllDay').checked = isAllDay;
+  document.getElementById('calEventTimeRow').style.display = isAllDay ? 'none' : '';
+  if(isAllDay) {
+    document.getElementById('calEventStart').value = ev.start.date;
+    var endDate = new Date(ev.end.date); endDate.setDate(endDate.getDate()-1);
+    document.getElementById('calEventEnd').value = endDate.toISOString().slice(0,10);
+  } else {
+    var sd = new Date(ev.start.dateTime), ed = new Date(ev.end.dateTime);
+    document.getElementById('calEventStart').value = sd.toISOString().slice(0,10);
+    document.getElementById('calEventEnd').value   = ed.toISOString().slice(0,10);
+    document.getElementById('calEventStartTime').value = sd.toTimeString().slice(0,5);
+    document.getElementById('calEventEndTime').value   = ed.toTimeString().slice(0,5);
+  }
+  calPopulateCalSelect(calId);
+  document.getElementById('calEventOverlay').classList.add('show');
+}
+function calSaveEvent() {
+  var title = document.getElementById('calEventTitle').value.trim();
+  if(!title){ alert('제목을 입력해주세요.'); return; }
+  var selCalId = document.getElementById('calEventCalSelect').value;
+  var isAllDay = document.getElementById('calEventAllDay').checked;
+  var startDate = document.getElementById('calEventStart').value;
+  var endDate   = document.getElementById('calEventEnd').value;
+  var body;
+  if(isAllDay) {
+    var endD = new Date(endDate); endD.setDate(endD.getDate()+1);
+    body = { summary: title, description: document.getElementById('calEventDesc').value,
+      start: { date: startDate }, end: { date: endD.toISOString().slice(0,10) } };
+  } else {
+    var tz = 'Asia/Seoul';
+    body = { summary: title, description: document.getElementById('calEventDesc').value,
+      start: { dateTime: startDate+'T'+document.getElementById('calEventStartTime').value+':00', timeZone: tz },
+      end:   { dateTime: endDate  +'T'+document.getElementById('calEventEndTime').value  +':00', timeZone: tz } };
+  }
+  var evtId  = document.getElementById('calEventId').value;
+  var origCalId = document.getElementById('calEventCalId').value;
+  var url, method;
+  if(evtId) {
+    url    = 'https://www.googleapis.com/calendar/v3/calendars/'+encodeURIComponent(origCalId)+'/events/'+encodeURIComponent(evtId);
+    method = 'PUT';
+  } else {
+    url    = 'https://www.googleapis.com/calendar/v3/calendars/'+encodeURIComponent(selCalId)+'/events';
+    method = 'POST';
+  }
+  fetch(url, { method: method,
+    headers: { Authorization: 'Bearer '+calAccessToken, 'Content-Type': 'application/json' },
+    body: JSON.stringify(body)
+  }).then(function(r){ return r.json(); }).then(function(data) {
+    if(data.error){ alert('저장 실패: '+data.error.message); return; }
+    closeOverlay('calEventOverlay');
+    calFetchEvents();
+  }).catch(function(e){ alert('오류: '+e.message); });
+}
+function calDeleteEvent(evtId, calId) {
+  if(!confirm('이 일정을 삭제하시겠습니까?')) return;
+  fetch('https://www.googleapis.com/calendar/v3/calendars/'+encodeURIComponent(calId)+'/events/'+encodeURIComponent(evtId), {
+    method: 'DELETE', headers: { Authorization: 'Bearer '+calAccessToken }
+  }).then(function(r){
+    if(r.status === 204 || r.ok) calFetchEvents();
+    else r.json().then(function(d){ alert('삭제 실패: '+(d.error&&d.error.message||r.status)); });
+  });
 }
 function closeCalPopup() { document.getElementById('calEvtPopup').classList.remove('show'); }
 document.addEventListener('click', function(e){
