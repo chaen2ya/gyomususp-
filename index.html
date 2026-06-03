@@ -1217,7 +1217,7 @@ function calRender() {
       // 이 날의 이벤트
       var targetDate;
       if(isPrev) targetDate = new Date(calYear, calMonth-1, dayNum);
-      else if(isOther) targetDate = new Date(calYear, calMonth+1, dayNum - (new Date(calYear,calMonth+1,0).getDate()) );
+      else if(isOther) targetDate = new Date(calYear, calMonth+1, dayNum);
       else targetDate = new Date(calYear, calMonth, dayNum);
 
       var dateStr = targetDate.getFullYear()+'-'+
