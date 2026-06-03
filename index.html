@@ -483,14 +483,16 @@ body{background:var(--cover);color:var(--ink);display:flex;flex-direction:column
       <h2 class="sec-title">📅 학사일정</h2>
       <div class="cal-info" id="calSetupBox">
         <strong>📌 구글 캘린더 연결 설정</strong>
-        Google Calendar에서 <b>'방학유 학사일정'</b> 캘린더를 공개 설정한 후,<br>
-        캘린더 ID(이메일 형식)를 입력하세요.
-        <div class="cal-id-row">
-          <input type="text" id="calIdInput" placeholder="예: abc123@group.calendar.google.com">
-          <button class="btn-primary" onclick="applyCalendar()">적용</button>
+        표시할 캘린더를 추가하세요. 캘린더 ID는 구글 캘린더 → 설정 → 해당 캘린더 → <b>캘린더 통합</b>에서 확인할 수 있습니다.
+        <div id="calIdList" style="margin-top:10px;display:flex;flex-direction:column;gap:6px"></div>
+        <div class="cal-id-row" style="margin-top:8px">
+          <input type="text" id="calIdInput" placeholder="캘린더 ID 입력 (예: abc@group.calendar.google.com)">
+          <button class="btn-primary" onclick="calAddId()">추가</button>
         </div>
+        <button class="btn-primary" onclick="calApplyAll()" style="margin-top:10px;width:100%;padding:9px">✅ 적용</button>
       </div>
       <div id="calFrame"></div>
+      <button id="calEditBtn" onclick="calOpenEdit()" style="display:none;margin-top:8px;width:100%;padding:8px;background:#f0f4ff;border:1px solid #c0ccd8;border-radius:6px;font-size:12px;font-family:'MyHandwriting','Noto Sans KR',sans-serif;cursor:pointer;color:#2a6db5">⚙️ 캘린더 설정 변경</button>
     </section>
 
     <!-- ② 할 일 목록 -->
@@ -888,11 +890,17 @@ function setupListeners() {
     onDocLoaded();
   }));
   unsubscribers.push(uref('data/settings').onSnapshot(function(snap) {
-    if(snap.exists && snap.data().calId) {
-      var calId = snap.data().calId;
-      document.getElementById('calIdInput').value = calId;
-      buildCalFrame(calId);
-      document.getElementById('calSetupBox').style.display = 'none';
+    if(snap.exists) {
+      var d = snap.data();
+      // 신규: calIds 배열 / 구버전: calId 단일값 마이그레이션
+      var ids = d.calIds || (d.calId ? [d.calId] : []);
+      if(ids.length) {
+        calIds = ids;
+        renderCalIdList();
+        buildCalFrame(ids);
+        document.getElementById('calSetupBox').style.display = 'none';
+        document.getElementById('calEditBtn').style.display = '';
+      }
     }
     onDocLoaded();
   }));
@@ -936,16 +944,48 @@ function goTab(id, btn) {
   }
 }
 
-function applyCalendar() {
-  var id = document.getElementById('calIdInput').value.trim();
-  if(!id){ alert('캘린더 ID를 입력해주세요.'); return; }
-  buildCalFrame(id);
-  uref('data/settings').set({calId: id}, {merge: true});
-  document.getElementById('calSetupBox').style.display = 'none';
+var calIds = [];
+
+function renderCalIdList() {
+  var box = document.getElementById('calIdList');
+  if(!box) return;
+  if(!calIds.length) { box.innerHTML = '<p style="font-size:12px;color:#aaa">추가된 캘린더가 없습니다.</p>'; return; }
+  box.innerHTML = calIds.map(function(id, i) {
+    return '<div style="display:flex;align-items:center;gap:6px;background:#fff;border:1px solid #dde;border-radius:6px;padding:6px 10px">'+
+      '<span style="flex:1;font-size:12px;color:#2c3e50;word-break:break-all">'+esc(id)+'</span>'+
+      '<button onclick="calRemoveId('+i+')" style="background:#fce8e6;border:none;border-radius:4px;color:#c0392b;font-size:11px;padding:3px 7px;cursor:pointer;flex-shrink:0;font-family:\'MyHandwriting\',\'Noto Sans KR\',sans-serif">삭제</button>'+
+    '</div>';
+  }).join('');
 }
-function buildCalFrame(id) {
-  var url = 'https://calendar.google.com/calendar/embed?src='+encodeURIComponent(id)+
-    '&ctz=Asia%2FSeoul&hl=ko&mode=MONTH&showTitle=0&showNav=1&showPrint=0&showTabs=0&showCalendars=0';
+function calAddId() {
+  var val = document.getElementById('calIdInput').value.trim();
+  if(!val) { alert('캘린더 ID를 입력해주세요.'); return; }
+  if(calIds.indexOf(val) >= 0) { alert('이미 추가된 캘린더입니다.'); return; }
+  calIds.push(val);
+  document.getElementById('calIdInput').value = '';
+  renderCalIdList();
+}
+function calRemoveId(i) {
+  calIds.splice(i, 1);
+  renderCalIdList();
+}
+function calApplyAll() {
+  if(!calIds.length) { alert('캘린더를 하나 이상 추가해주세요.'); return; }
+  buildCalFrame(calIds);
+  uref('data/settings').set({calIds: calIds}, {merge: true});
+  document.getElementById('calSetupBox').style.display = 'none';
+  document.getElementById('calEditBtn').style.display = '';
+}
+function calOpenEdit() {
+  renderCalIdList();
+  document.getElementById('calSetupBox').style.display = '';
+  document.getElementById('calEditBtn').style.display = 'none';
+}
+function buildCalFrame(ids) {
+  if(!Array.isArray(ids)) ids = [ids];
+  var base = 'https://calendar.google.com/calendar/embed?ctz=Asia%2FSeoul&hl=ko&mode=MONTH&showTitle=0&showNav=1&showPrint=0&showTabs=0&showCalendars=1';
+  var srcs = ids.map(function(id){ return '&src='+encodeURIComponent(id); }).join('');
+  var url = base + srcs;
   document.getElementById('calFrame').innerHTML =
     '<iframe src="'+url+'" style="width:100%;height:calc(100vh - 210px);border:none;border-radius:8px;"></iframe>';
 }
