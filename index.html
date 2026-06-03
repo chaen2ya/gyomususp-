@@ -152,12 +152,15 @@ body{background:var(--cover);color:var(--ink);display:flex;flex-direction:column
 .cal-grid-wrap{background:#fff;border-radius:8px;overflow:hidden;box-shadow:0 1px 4px rgba(0,0,0,0.08)}
 .cal-grid{width:100%;border-collapse:collapse;table-layout:fixed;
   height:calc(100vh - var(--hdr-h) - var(--tab-h) - 100px);}
+.cal-grid tbody{height:100%}
+.cal-grid tbody tr{height:calc((100vh - var(--hdr-h) - var(--tab-h) - 130px) / 6)}
 .cal-grid th{text-align:center;font-size:11px;font-weight:600;color:var(--ink-soft);
   padding:4px 0;border-bottom:1px solid var(--paper-line);width:calc(100%/7)}
 .cal-grid th:nth-child(6){color:#1565c0}
 .cal-grid th:nth-child(7){color:#e53935}
 .cal-day{vertical-align:top;border:1px solid #dde2ea;padding:3px;
-  cursor:pointer;position:relative;transition:background .1s;background:#fff}
+  cursor:pointer;position:relative;transition:background .1s;background:#fff;
+  overflow:hidden;}
 .cal-day:hover{background:#f0f4ff}
 .cal-day.other-month{background:#f5f5f3}
 .cal-day.saturday{background:#e8f4fd}
@@ -172,9 +175,9 @@ body{background:var(--cover);color:var(--ink);display:flex;flex-direction:column
 .cal-day.saturday .cal-day-num{color:#1565c0}
 .cal-day.other-month .cal-day-num{color:#bbb}
 /* 이벤트 칩 */
-.cal-evt{font-size:9px;line-height:1.3;padding:1px 4px;border-radius:3px;
+.cal-evt{font-size:9px;line-height:1.2;padding:1px 4px;border-radius:3px;
   margin-bottom:1px;overflow:hidden;white-space:nowrap;text-overflow:ellipsis;
-  color:#fff;cursor:pointer;}
+  color:#fff;cursor:pointer;display:block;}
 .cal-evt-more{font-size:9px;color:var(--ink-soft);padding:0 2px}
 
 /* 이벤트 상세 팝업 */
@@ -1175,7 +1178,7 @@ function calRender() {
 
       html += '<td class="'+cls+'" onclick="calDayClick(event,\''+dateStr+'\')">';
       html += '<div class="cal-day-num">'+dayNum+'</div>';
-      var maxShow = dayEvts.length; // 전체 표시
+      var maxShow = dayEvts.length;
       dayEvts.slice(0, maxShow).forEach(function(ev) {
         var title = esc(ev.summary||'(제목없음)');
         var color = ev._calColor || '#4285f4';
