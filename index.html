@@ -148,9 +148,9 @@ body{background:var(--cover);color:var(--ink);display:flex;flex-direction:column
   padding:5px 12px;font-size:12px;cursor:pointer;font-family:'MyHandwriting','Noto Sans KR',sans-serif}
 
 /* 달력 그리드 */
-.cal-grid{width:100%;border-collapse:collapse;}
+.cal-grid{width:100%;border-collapse:collapse;table-layout:fixed;}
 .cal-grid th{text-align:center;font-size:11px;font-weight:600;color:var(--ink-soft);
-  padding:4px 0;border-bottom:1px solid var(--paper-line)}
+  padding:4px 0;border-bottom:1px solid var(--paper-line);width:calc(100%/7)}
 .cal-grid th:first-child{color:#e53935}
 .cal-grid th:last-child{color:#1565c0}
 .cal-day{vertical-align:top;border:1px solid var(--paper-line);padding:2px;
