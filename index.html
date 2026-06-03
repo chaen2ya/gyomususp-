@@ -276,6 +276,8 @@ body{background:var(--cover);color:var(--ink);display:flex;flex-direction:column
 .chk-cell.etc{background:#fff8e1;color:#e65100;font-size:7px;line-height:1.1;word-break:break-all;padding:1px;height:24px}
 .chk-head-span{display:block;font-size:9px;line-height:1.3;white-space:normal;word-break:break-all;
   padding:3px 2px;text-align:center;width:28px;box-sizing:border-box}
+.chk-th-drag{transition:background .1s}
+.chk-th-drag.chk-drag-over{background:#c9a84c !important;}
 .chk-popup{display:none;position:fixed;z-index:500;background:#fff;border-radius:10px;
   box-shadow:0 4px 20px rgba(0,0,0,0.25);padding:10px;flex-direction:column;gap:6px;min-width:120px}
 .chk-popup.show{display:flex}
@@ -1327,7 +1329,10 @@ function renderChk() {
     return;
   }
   var html='<thead><tr><th style="position:sticky;left:0;z-index:3;background:#16213e;width:42px;">이름</th>';
-  its.forEach(function(it){ html+='<th style="width:28px;"><span class="chk-head-span">'+esc(it.label)+'</span></th>'; });
+  its.forEach(function(it,ci){
+    html+='<th draggable="true" data-ci="'+ci+'" class="chk-th-drag" style="width:28px;cursor:grab;">'+
+      '<span class="chk-head-span">'+esc(it.label)+'</span></th>';
+  });
   html+='</tr></thead><tbody>';
   ss.forEach(function(s){
     html+='<tr><td>'+esc(s.name)+'</td>';
@@ -1339,9 +1344,81 @@ function renderChk() {
     html+='</tr>';
   });
   tbl.innerHTML=html+'</tbody>';
-  // Firestore 실시간 반영: 현재 시트 데이터 업데이트
+  chkBindColDrag();
+  // 로컬 캐시 업데이트
   var cur = chkSheets.find(function(x){ return x.id===curChkId; });
   if(cur){ cur.students=chkData.students; cur.items=chkData.items; cur.cells=chkData.cells; }
+}
+
+/* ── 항목(열) 드래그 순서 변경 ── */
+var _chkDragCI = null;  // 드래그 중인 열 인덱스
+
+function chkBindColDrag() {
+  var ths = document.querySelectorAll('.chk-th-drag');
+  ths.forEach(function(th) {
+    // 마우스
+    th.addEventListener('dragstart', function(e) {
+      _chkDragCI = parseInt(this.dataset.ci);
+      e.dataTransfer.effectAllowed = 'move';
+      this.style.opacity = '0.4';
+    });
+    th.addEventListener('dragend', function() {
+      this.style.opacity = '';
+      document.querySelectorAll('.chk-th-drag').forEach(function(t){ t.classList.remove('chk-drag-over'); });
+    });
+    th.addEventListener('dragover', function(e) {
+      e.preventDefault();
+      e.dataTransfer.dropEffect = 'move';
+      document.querySelectorAll('.chk-th-drag').forEach(function(t){ t.classList.remove('chk-drag-over'); });
+      this.classList.add('chk-drag-over');
+    });
+    th.addEventListener('drop', function(e) {
+      e.preventDefault();
+      var toCI = parseInt(this.dataset.ci);
+      if(_chkDragCI === null || _chkDragCI === toCI) return;
+      chkMoveItem(_chkDragCI, toCI);
+      _chkDragCI = null;
+    });
+
+    // 터치 (모바일)
+    th.addEventListener('touchstart', function(e) {
+      _chkDragCI = parseInt(this.dataset.ci);
+      this.style.opacity = '0.4';
+      this._touchStartX = e.touches[0].clientX;
+    }, {passive:true});
+    th.addEventListener('touchmove', function(e) {
+      var x = e.touches[0].clientX;
+      var els = document.querySelectorAll('.chk-th-drag');
+      document.querySelectorAll('.chk-th-drag').forEach(function(t){ t.classList.remove('chk-drag-over'); });
+      els.forEach(function(t) {
+        var r = t.getBoundingClientRect();
+        if(x >= r.left && x <= r.right) t.classList.add('chk-drag-over');
+      });
+    }, {passive:true});
+    th.addEventListener('touchend', function(e) {
+      this.style.opacity = '';
+      var x = e.changedTouches[0].clientX;
+      var toCI = null;
+      document.querySelectorAll('.chk-th-drag').forEach(function(t) {
+        t.classList.remove('chk-drag-over');
+        var r = t.getBoundingClientRect();
+        if(x >= r.left && x <= r.right) toCI = parseInt(t.dataset.ci);
+      });
+      if(toCI !== null && _chkDragCI !== null && _chkDragCI !== toCI) {
+        chkMoveItem(_chkDragCI, toCI);
+      }
+      _chkDragCI = null;
+    }, {passive:true});
+  });
+}
+
+function chkMoveItem(fromCI, toCI) {
+  var items = chkData.items;
+  var moved = items.splice(fromCI, 1)[0];
+  items.splice(toCI, 0, moved);
+  chkData.items = items;
+  renderChk();
+  saveChk();
 }
 document.addEventListener('click', function(e){
   var popup=document.getElementById('chkPopup');
