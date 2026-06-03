@@ -708,20 +708,64 @@ body{background:var(--cover);color:var(--ink);display:flex;flex-direction:column
       </div>
     </section>
 
-    <!-- ⑦ 교직원 연락망 -->
-    <section id="sec-staff" class="tab-sec">
-      <h2 class="sec-title">👩‍🏫 교직원 연락망</h2>
-      <input class="search-box" id="staffQ" type="text" placeholder="🔍 이름 또는 직책 검색..." oninput="renderStaff()">
-      <button class="contact-add-btn" onclick="openContactModal('staff',null)">+ 교직원 추가</button>
-      <div id="staffList"></div>
+    <!-- ⑦ 연락망 (교직원+학생 통합) -->
+    <section id="sec-contact" class="tab-sec">
+      <h2 class="sec-title">📒 연락망</h2>
+      <!-- 탭 -->
+      <div style="display:flex;gap:0;margin-bottom:12px;border-bottom:2px solid var(--cover)">
+        <button onclick="contactSubTab('staff')" id="ctab-staff"
+          style="flex:1;padding:8px 0;background:none;border:none;border-bottom:3px solid var(--gold);font-size:13px;font-weight:700;color:var(--cover);cursor:pointer;font-family:'MyHandwriting','Noto Sans KR',sans-serif;">👩‍🏫 교직원</button>
+        <button onclick="contactSubTab('stu')" id="ctab-stu"
+          style="flex:1;padding:8px 0;background:none;border:none;border-bottom:3px solid transparent;font-size:13px;font-weight:700;color:#aaa;cursor:pointer;font-family:'MyHandwriting','Noto Sans KR',sans-serif;">📱 학생</button>
+      </div>
+      <!-- 교직원 패널 -->
+      <div id="cpanel-staff">
+        <input class="search-box" id="staffQ" type="text" placeholder="🔍 이름 또는 직책 검색..." oninput="renderStaff()">
+        <button class="contact-add-btn" onclick="openContactModal('staff',null)">+ 교직원 추가</button>
+        <div id="staffList"></div>
+      </div>
+      <!-- 학생 패널 -->
+      <div id="cpanel-stu" style="display:none">
+        <input class="search-box" id="stuQ" type="text" placeholder="🔍 학생 이름 검색..." oninput="renderStudents()">
+        <button class="contact-add-btn" onclick="openContactModal('student',null)">+ 학생 추가</button>
+        <div id="stuList"></div>
+      </div>
     </section>
 
-    <!-- ⑧ 학생연락망 -->
-    <section id="sec-stu" class="tab-sec">
-      <h2 class="sec-title">📱 학생연락망</h2>
-      <input class="search-box" id="stuQ" type="text" placeholder="🔍 학생 이름 검색..." oninput="renderStudents()">
-      <button class="contact-add-btn" onclick="openContactModal('student',null)">+ 학생 추가</button>
-      <div id="stuList"></div>
+    <!-- ⑧ 교육계획 -->
+    <section id="sec-edu" class="tab-sec">
+      <div id="eduListView">
+        <h2 class="sec-title">📚 교육계획</h2>
+        <button class="chk-new-btn" onclick="eduNewPlan()">+ 새 교육계획 만들기</button>
+        <div id="eduPlanGrid"></div>
+      </div>
+      <div id="eduDetailView" style="display:none">
+        <div class="chk-detail-hdr">
+          <button class="chk-back-btn" onclick="eduGoBack()">← 목록</button>
+          <div class="chk-detail-title" id="eduDetailTitle"></div>
+          <button class="chk-rename-btn" onclick="eduRenamePlan()">✏️</button>
+        </div>
+        <!-- 소주제/메타 행 -->
+        <div style="background:#fff;border-radius:8px;padding:10px 12px;margin-bottom:10px;box-shadow:0 1px 4px rgba(0,0,0,0.08)">
+          <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:6px" id="eduWeekMetas"></div>
+        </div>
+        <!-- 영역 관리 -->
+        <div style="display:flex;gap:6px;margin-bottom:10px;flex-wrap:wrap">
+          <button class="chk-btn-blue" onclick="eduAddCategory()">+ 대분류</button>
+          <button class="chk-btn-blue" onclick="eduAddRow()">+ 영역</button>
+          <button class="chk-btn-red" onclick="eduDeleteRowModal()">영역 삭제</button>
+          <div style="margin-left:auto;display:flex;gap:4px;align-items:center">
+            <span style="font-size:11px;color:var(--ink-soft)">주차:</span>
+            <button class="chk-btn-gray" onclick="eduWeeksChange(3)" id="eduWk3" style="padding:4px 8px;font-size:11px">3주</button>
+            <button class="chk-btn-blue" onclick="eduWeeksChange(4)" id="eduWk4" style="padding:4px 8px;font-size:11px">4주</button>
+            <button class="chk-btn-gray" onclick="eduWeeksChange(5)" id="eduWk5" style="padding:4px 8px;font-size:11px">5주</button>
+          </div>
+        </div>
+        <!-- 테이블 -->
+        <div class="chk-wrap" id="eduTableWrap">
+          <table class="chk-table" id="eduTable" style="width:max-content"></table>
+        </div>
+      </div>
     </section>
 
   </div>
@@ -734,8 +778,8 @@ body{background:var(--cover);color:var(--ink);display:flex;flex-direction:column
     <button class="nav-btn" onclick="goTab('obs',this)"><span class="ni">👁️</span><span>학생관찰</span></button>
     <button class="nav-btn" onclick="goTab('parent',this)"><span class="ni">🤝</span><span>부모상담</span></button>
     <button class="nav-btn" onclick="goTab('chk',this)"><span class="ni">📋</span><span>체크리스트</span></button>
-    <button class="nav-btn" onclick="goTab('staff',this)"><span class="ni">👩‍🏫</span><span>교직원</span></button>
-    <button class="nav-btn" onclick="goTab('stu',this)"><span class="ni">📱</span><span>학생연락</span></button>
+    <button class="nav-btn" onclick="goTab('edu',this)"><span class="ni">📚</span><span>교육계획</span></button>
+    <button class="nav-btn" onclick="goTab('contact',this)"><span class="ni">📒</span><span>연락망</span></button>
   </nav>
 
 </div><!-- #appScreen -->
@@ -904,6 +948,21 @@ body{background:var(--cover);color:var(--ink);display:flex;flex-direction:column
   </div>
 </div>
 
+<!-- 교육계획 셀 편집 모달 -->
+<div class="overlay" id="eduCellOverlay">
+  <div class="modal">
+    <div class="modal-title" id="eduCellLabel">내용 입력</div>
+    <input type="hidden" id="eduCellKey">
+    <div class="fg">
+      <textarea id="eduCellText" style="height:140px;resize:vertical" placeholder="활동 내용을 입력하세요..."></textarea>
+    </div>
+    <div class="modal-btns">
+      <button class="btn-cancel" onclick="closeOverlay('eduCellOverlay')">취소</button>
+      <button class="btn-save" onclick="eduSaveCell()">저장</button>
+    </div>
+  </div>
+</div>
+
 <!-- 부모상담 모달 -->
 <div class="overlay" id="parentOverlay">
   <div class="modal">
@@ -937,8 +996,10 @@ const db   = firebase.firestore();
 var uid = null;
 var todos = [], obs = [], staff = [], studs = [], notes = [], parentConsults = [];
 var chkData = { students:[], items:[], cells:{} };
-var chkSheets = [];        // 체크리스트 목록
-var curChkId  = null;      // 현재 열린 체크리스트 ID
+var chkSheets = [];
+var eduPlans = [];
+var curChkId  = null;
+var curEduId  = null;
 var curFilter = 'all', chkTarget = null;
 var unsubscribers = [];
 
@@ -995,14 +1056,14 @@ function showApp() {
 
 var appReady = false;
 var loadCount = 0;
-var TOTAL_DOCS = 6;
+var TOTAL_DOCS = 7;
 
 function onDocLoaded() {
   loadCount++;
   if(loadCount >= TOTAL_DOCS && !appReady) {
     appReady = true;
     showApp();
-    renderTodos(); renderObs(); renderChkSheets(); renderStaff(); renderStudents(); renderNotes(); renderParents();
+    renderTodos(); renderObs(); renderChkSheets(); renderStaff(); renderStudents(); renderNotes(); renderParents(); renderEduPlans();
   }
 }
 
@@ -1044,7 +1105,11 @@ function setupListeners() {
     if(appReady) renderChkSheets();
     onDocLoaded();
   }));
-  unsubscribers.push(uref('data/settings').onSnapshot(function(snap) {
+  unsubscribers.push(ucol('eduPlans').onSnapshot(function(snap) {
+    eduPlans = snap.docs.map(function(d){ return Object.assign({id:d.id}, d.data()); });
+    if(appReady) renderEduPlans();
+    onDocLoaded();
+  }));
     if(snap.exists && snap.data().calSelected) {
       calSelected = snap.data().calSelected;
     }
@@ -1086,12 +1151,24 @@ function goTab(id, btn) {
   document.getElementById('sec-'+id).classList.add('active');
   btn.classList.add('active');
   document.querySelector('.content-inner').scrollTop = 0;
-  // 체크리스트 탭 전환 시 목록 뷰로 복귀
   if(id === 'chk') {
     curChkId = null;
     document.getElementById('chkDetailView').style.display = 'none';
     document.getElementById('chkListView').style.display   = '';
   }
+  if(id === 'edu') {
+    curEduId = null;
+    document.getElementById('eduDetailView').style.display = 'none';
+    document.getElementById('eduListView').style.display   = '';
+  }
+}
+function contactSubTab(tab) {
+  document.getElementById('cpanel-staff').style.display = tab==='staff' ? '' : 'none';
+  document.getElementById('cpanel-stu').style.display   = tab==='stu'   ? '' : 'none';
+  document.getElementById('ctab-staff').style.borderBottomColor = tab==='staff' ? 'var(--gold)' : 'transparent';
+  document.getElementById('ctab-staff').style.color              = tab==='staff' ? 'var(--cover)' : '#aaa';
+  document.getElementById('ctab-stu').style.borderBottomColor   = tab==='stu'   ? 'var(--gold)' : 'transparent';
+  document.getElementById('ctab-stu').style.color                = tab==='stu'   ? 'var(--cover)' : '#aaa';
 }
 
 /* ── Google Calendar API ── */
@@ -2262,7 +2339,307 @@ function exportExcel(type) {
   XLSX.writeFile(wb, fileName);
 }
 
-function exportWord(type) {
+/* ── 교육계획 ── */
+var EDU_DAYS = ['월','화','수','목','금'];
+var EDU_DEFAULT_ROWS = [
+  {cat:'등원', label:'아침활동'},
+  {cat:'자유선택활동', label:'쌓기'},
+  {cat:'자유선택활동', label:'역할'},
+  {cat:'자유선택활동', label:'언어'},
+  {cat:'자유선택활동', label:'수·조작'},
+  {cat:'자유선택활동', label:'과학'},
+  {cat:'자유선택활동', label:'미술'},
+  {cat:'자유선택활동', label:'음률'},
+  {cat:'대·소집단활동', label:'이야기나누기'},
+  {cat:'대·소집단활동', label:'동화'},
+  {cat:'대·소집단활동', label:'동시'},
+  {cat:'대·소집단활동', label:'음악'},
+  {cat:'대·소집단활동', label:'신체/게임'},
+  {cat:'대·소집단활동', label:'요리'},
+  {cat:'대·소집단활동', label:'바깥놀이'},
+  {cat:'기본', label:'기본생활습관'},
+  {cat:'기본', label:'안전교육'}
+];
+var curEduData = null; // {name, weeks, rows:[{cat,label}], metas:{w0:{topic,event,work}, ...}, cells:{w0d0_영역:text}}
+
+function saveEduPlan() {
+  if(!curEduId) return;
+  ucol('eduPlans').doc(curEduId).set(curEduData, {merge:true});
+}
+
+function renderEduPlans() {
+  var grid = document.getElementById('eduPlanGrid');
+  if(!grid) return;
+  if(!eduPlans.length) {
+    grid.innerHTML = '<div class="empty"><div class="ei">📚</div><p>교육계획을 만들어보세요.</p></div>';
+    return;
+  }
+  var html = '<div class="chk-sheet-grid">';
+  eduPlans.forEach(function(p) {
+    html += '<div class="chk-sheet-card" onclick="eduOpenPlan(\''+p.id+'\')">' +
+      '<div class="chk-sheet-card-tab" style="background:var(--green)"></div>' +
+      '<div class="chk-sheet-card-inner">' +
+        '<div class="chk-sheet-card-name">'+esc(p.name)+'</div>' +
+        '<div style="font-size:10px;color:var(--ink-soft);margin-top:6px;line-height:1.7">' +
+          (p.weeks||4)+'주 · '+(p.rows?p.rows.length:0)+'개 영역' +
+        '</div>' +
+        '<div class="chk-sheet-card-meta">'+(p.updatedAt?p.updatedAt.slice(0,10):'')+'</div>' +
+        '<button class="chk-sheet-card-del" onclick="event.stopPropagation();eduDeletePlan(\''+p.id+'\')">🗑️</button>' +
+      '</div>' +
+    '</div>';
+  });
+  html += '</div>';
+  grid.innerHTML = html;
+}
+
+function eduNewPlan() {
+  var name = prompt('교육계획 이름을 입력하세요: (예: 2026년 6월)');
+  if(!name||!name.trim()) return;
+  var data = {
+    name: name.trim(),
+    weeks: 4,
+    rows: JSON.parse(JSON.stringify(EDU_DEFAULT_ROWS)),
+    metas: {},
+    cells: {},
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString()
+  };
+  ucol('eduPlans').add(data).then(function(ref){ eduOpenPlan(ref.id); });
+}
+
+function eduOpenPlan(id) {
+  var p = eduPlans.find(function(x){ return x.id===id; });
+  if(!p) return;
+  curEduId = id;
+  curEduData = JSON.parse(JSON.stringify(p));
+  if(!curEduData.metas) curEduData.metas = {};
+  if(!curEduData.cells) curEduData.cells = {};
+  if(!curEduData.rows) curEduData.rows = JSON.parse(JSON.stringify(EDU_DEFAULT_ROWS));
+  document.getElementById('eduDetailTitle').textContent = p.name;
+  document.getElementById('eduListView').style.display = 'none';
+  document.getElementById('eduDetailView').style.display = '';
+  document.querySelector('.content-inner').scrollTop = 0;
+  renderEduDetail();
+}
+
+function eduGoBack() {
+  curEduId = null; curEduData = null;
+  document.getElementById('eduDetailView').style.display = 'none';
+  document.getElementById('eduListView').style.display = '';
+}
+
+function eduRenamePlan() {
+  if(!curEduId) return;
+  var name = prompt('새 이름:', curEduData.name||'');
+  if(!name||!name.trim()) return;
+  curEduData.name = name.trim();
+  document.getElementById('eduDetailTitle').textContent = name.trim();
+  saveEduPlan();
+}
+
+function eduDeletePlan(id) {
+  var p = eduPlans.find(function(x){ return x.id===id; });
+  if(!confirm((p?'['+p.name+'] ':'')+'교육계획을 삭제하시겠습니까?')) return;
+  ucol('eduPlans').doc(id).delete();
+}
+
+function renderEduDetail() {
+  renderEduMetas();
+  renderEduTable();
+}
+
+function renderEduMetas() {
+  var wrap = document.getElementById('eduWeekMetas');
+  if(!wrap) return;
+  var weeks = curEduData.weeks || 4;
+  var html = '';
+  for(var w=0; w<weeks; w++) {
+    var m = (curEduData.metas && curEduData.metas['w'+w]) || {};
+    html += '<div style="flex:1;min-width:120px;background:#f8f6ee;border:1px solid #e0d8b0;border-radius:8px;padding:8px 10px">' +
+      '<div style="font-size:11px;font-weight:700;color:var(--cover);margin-bottom:5px">'+(w+1)+'주차</div>' +
+      '<div style="font-size:10px;color:var(--ink-soft);margin-bottom:2px">소주제</div>' +
+      '<div onclick="eduEditMeta('+w+',\'topic\')" style="font-size:12px;color:var(--ink);min-height:18px;cursor:pointer;border-bottom:1px dashed #c8c0a0;padding-bottom:2px;margin-bottom:4px">'+
+        (m.topic ? esc(m.topic) : '<span style="color:#ccc">탭하여 입력</span>')+
+      '</div>' +
+      '<div style="font-size:10px;color:var(--ink-soft);margin-bottom:2px">행사</div>' +
+      '<div onclick="eduEditMeta('+w+',\'event\')" style="font-size:12px;color:var(--ink);min-height:18px;cursor:pointer;border-bottom:1px dashed #c8c0a0;padding-bottom:2px;margin-bottom:4px">'+
+        (m.event ? esc(m.event) : '<span style="color:#ccc">탭하여 입력</span>')+
+      '</div>' +
+      '<div style="font-size:10px;color:var(--ink-soft);margin-bottom:2px">수업/업무</div>' +
+      '<div onclick="eduEditMeta('+w+',\'work\')" style="font-size:12px;color:var(--ink);min-height:18px;cursor:pointer">'+
+        (m.work ? esc(m.work) : '<span style="color:#ccc">탭하여 입력</span>')+
+      '</div>' +
+    '</div>';
+  }
+  wrap.innerHTML = html;
+}
+
+function eduEditMeta(wi, field) {
+  if(!curEduData.metas) curEduData.metas = {};
+  if(!curEduData.metas['w'+wi]) curEduData.metas['w'+wi] = {};
+  var labels = {topic:'소주제', event:'행사', work:'수업/업무'};
+  var cur = curEduData.metas['w'+wi][field] || '';
+  var val = prompt((wi+1)+'주차 '+labels[field]+' 입력:', cur);
+  if(val === null) return;
+  curEduData.metas['w'+wi][field] = val.trim();
+  saveEduPlan();
+  renderEduMetas();
+}
+
+function renderEduTable() {
+  var tbl = document.getElementById('eduTable');
+  if(!tbl) return;
+  var rows = curEduData.rows || [];
+  var weeks = curEduData.weeks || 4;
+
+  // 대분류 그룹 계산
+  var cats = [];
+  rows.forEach(function(r) {
+    if(!cats.length || cats[cats.length-1].name !== r.cat) {
+      cats.push({name: r.cat, count: 1, startIdx: rows.indexOf(r)});
+    } else {
+      cats[cats.length-1].count++;
+    }
+  });
+
+  var CELL_W = 52;
+  var html = '<thead>' +
+    '<tr>' +
+      '<th style="width:54px;position:sticky;left:0;z-index:3;background:#16213e;font-size:9px">대분류</th>' +
+      '<th style="width:52px;position:sticky;left:54px;z-index:3;background:#1c2340;font-size:9px">영역</th>';
+  for(var w=0; w<weeks; w++) {
+    EDU_DAYS.forEach(function(d) {
+      html += '<th style="width:'+CELL_W+'px;font-size:9px">'+(w+1)+'주<br>'+d+'</th>';
+    });
+  }
+  html += '</tr></thead><tbody>';
+
+  // 대분류별 rowspan 계산
+  var catMap = {};
+  rows.forEach(function(r, ri) {
+    if(!catMap[r.cat]) catMap[r.cat] = {count:0, firstIdx:ri};
+    catMap[r.cat].count++;
+  });
+  var catRendered = {};
+
+  rows.forEach(function(r, ri) {
+    html += '<tr>';
+    // 대분류 셀 (rowspan)
+    if(!catRendered[r.cat]) {
+      catRendered[r.cat] = true;
+      html += '<td rowspan="'+catMap[r.cat].count+'" style="background:#f0f2f5;font-size:10px;font-weight:700;color:#2c3e50;text-align:center;vertical-align:middle;border:1px solid #c0c8d8;border-right:2px solid #c0c8d8;padding:3px 2px;position:sticky;left:0;z-index:1;word-break:keep-all;line-height:1.3;width:54px">'+esc(r.cat)+'</td>';
+    }
+    // 영역명 셀
+    html += '<td style="background:#f5f7fa;font-size:11px;font-weight:600;color:#2c3e50;text-align:center;vertical-align:middle;border:1px solid #c0c8d8;border-right:2px solid #c0c8d8;padding:3px 4px;position:sticky;left:54px;z-index:1;width:52px;word-break:keep-all;line-height:1.3">'+esc(r.label)+'</td>';
+    // 셀들
+    for(var w=0; w<weeks; w++) {
+      for(var di=0; di<5; di++) {
+        var key = 'w'+w+'d'+di+'_'+r.label;
+        var val = (curEduData.cells && curEduData.cells[key]) || '';
+        html += '<td style="border:1px solid #dde2ea;padding:2px 3px;vertical-align:top;cursor:pointer;min-height:36px;width:'+CELL_W+'px" onclick="eduCellClick(\''+key+'\')">'+
+          '<div style="font-size:10px;color:#2c3e50;line-height:1.4;white-space:pre-wrap;word-break:break-all;min-height:30px">'+esc(val)+'</div>'+
+        '</td>';
+      }
+    }
+    html += '</tr>';
+  });
+  html += '</tbody>';
+  tbl.innerHTML = html;
+}
+
+function eduCellClick(key) {
+  var cur = (curEduData.cells && curEduData.cells[key]) || '';
+  // 간단한 인라인 편집 모달
+  var parts = key.split('_'); // w0d1_영역명
+  var wdPart = parts[0]; // w0d1
+  var label = parts.slice(1).join('_');
+  var wNum = parseInt(wdPart.replace(/w(\d+)d\d+/,'$1')) + 1;
+  var dIdx = parseInt(wdPart.replace(/w\d+d(\d+)/,'$1'));
+  var dName = EDU_DAYS[dIdx] || '';
+  document.getElementById('eduCellKey').value = key;
+  document.getElementById('eduCellLabel').textContent = wNum+'주차 '+dName+'요일 · '+label;
+  document.getElementById('eduCellText').value = cur;
+  document.getElementById('eduCellOverlay').classList.add('show');
+  setTimeout(function(){ document.getElementById('eduCellText').focus(); }, 100);
+}
+
+function eduSaveCell() {
+  var key = document.getElementById('eduCellKey').value;
+  var val = document.getElementById('eduCellText').value.trim();
+  if(!curEduData.cells) curEduData.cells = {};
+  if(val) curEduData.cells[key] = val;
+  else delete curEduData.cells[key];
+  closeOverlay('eduCellOverlay');
+  saveEduPlan();
+  renderEduTable();
+}
+
+function eduAddCategory() {
+  var cat = prompt('새 대분류 이름:');
+  if(!cat||!cat.trim()) return;
+  var label = prompt('첫 번째 영역 이름:');
+  if(!label||!label.trim()) return;
+  curEduData.rows.push({cat:cat.trim(), label:label.trim()});
+  saveEduPlan();
+  renderEduTable();
+}
+
+function eduAddRow() {
+  // 기존 대분류 선택
+  var cats = [];
+  (curEduData.rows||[]).forEach(function(r){ if(cats.indexOf(r.cat)<0) cats.push(r.cat); });
+  var catStr = cats.map(function(c,i){ return (i+1)+'. '+c; }).join('\n');
+  var catIdx = prompt('영역을 추가할 대분류 번호를 선택하세요:\n'+catStr+'\n\n새 대분류는 0 입력:');
+  if(catIdx === null) return;
+  var cat;
+  if(catIdx.trim() === '0') {
+    cat = prompt('새 대분류 이름:');
+    if(!cat||!cat.trim()) return;
+    cat = cat.trim();
+  } else {
+    var idx = parseInt(catIdx)-1;
+    if(isNaN(idx)||idx<0||idx>=cats.length) { alert('올바른 번호를 입력해주세요.'); return; }
+    cat = cats[idx];
+  }
+  var label = prompt('새 영역 이름:');
+  if(!label||!label.trim()) return;
+  // 해당 대분류의 마지막 위치에 삽입
+  var lastIdx = -1;
+  (curEduData.rows||[]).forEach(function(r,i){ if(r.cat===cat) lastIdx=i; });
+  if(lastIdx >= 0) curEduData.rows.splice(lastIdx+1, 0, {cat:cat, label:label.trim()});
+  else curEduData.rows.push({cat:cat, label:label.trim()});
+  saveEduPlan();
+  renderEduTable();
+}
+
+function eduDeleteRowModal() {
+  var rows = curEduData.rows || [];
+  if(!rows.length) { alert('삭제할 영역이 없습니다.'); return; }
+  var list = rows.map(function(r,i){ return (i+1)+'. ['+r.cat+'] '+r.label; }).join('\n');
+  var input = prompt('삭제할 영역 번호 (쉼표로 여러 개):\n'+list);
+  if(!input) return;
+  var indices = input.split(',').map(function(s){ return parseInt(s.trim())-1; }).filter(function(i){ return !isNaN(i)&&i>=0&&i<rows.length; });
+  if(!indices.length) return;
+  var names = indices.map(function(i){ return rows[i].label; }).join(', ');
+  if(!confirm('['+names+'] 영역을 삭제하시겠습니까?\n관련 계획 내용도 함께 삭제됩니다.')) return;
+  // 셀 삭제
+  indices.forEach(function(i) {
+    var label = rows[i].label;
+    Object.keys(curEduData.cells||{}).forEach(function(k){ if(k.split('_').slice(1).join('_')===label) delete curEduData.cells[k]; });
+  });
+  curEduData.rows = rows.filter(function(_,i){ return indices.indexOf(i)<0; });
+  saveEduPlan();
+  renderEduTable();
+}
+
+function eduWeeksChange(n) {
+  if(!curEduData) return;
+  curEduData.weeks = n;
+  saveEduPlan();
+  renderEduDetail();
+}
+
+
   var title, bodyHtml, fileName;
 
   function escHtml(s){ return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/\n/g,'<br>'); }
