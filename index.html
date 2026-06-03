@@ -745,10 +745,6 @@ body{background:var(--cover);color:var(--ink);display:flex;flex-direction:column
           <div class="chk-detail-title" id="eduDetailTitle"></div>
           <button class="chk-rename-btn" onclick="eduRenamePlan()">✏️</button>
         </div>
-        <!-- 소주제/메타 행 -->
-        <div style="background:#fff;border-radius:8px;padding:10px 12px;margin-bottom:10px;box-shadow:0 1px 4px rgba(0,0,0,0.08)">
-          <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:6px" id="eduWeekMetas"></div>
-        </div>
         <!-- 영역 관리 -->
         <div style="display:flex;gap:6px;margin-bottom:10px;flex-wrap:wrap">
           <button class="chk-btn-blue" onclick="eduAddCategory()">+ 대분류</button>
@@ -757,7 +753,7 @@ body{background:var(--cover);color:var(--ink);display:flex;flex-direction:column
           <div style="margin-left:auto;display:flex;gap:4px;align-items:center">
             <span style="font-size:11px;color:var(--ink-soft)">주차:</span>
             <button class="chk-btn-gray" onclick="eduWeeksChange(3)" id="eduWk3" style="padding:4px 8px;font-size:11px">3주</button>
-            <button class="chk-btn-blue" onclick="eduWeeksChange(4)" id="eduWk4" style="padding:4px 8px;font-size:11px">4주</button>
+            <button class="chk-btn-gray" onclick="eduWeeksChange(4)" id="eduWk4" style="padding:4px 8px;font-size:11px">4주</button>
             <button class="chk-btn-gray" onclick="eduWeeksChange(5)" id="eduWk5" style="padding:4px 8px;font-size:11px">5주</button>
           </div>
         </div>
@@ -774,11 +770,11 @@ body{background:var(--cover);color:var(--ink);display:flex;flex-direction:column
   <nav class="bot-nav">
     <button class="nav-btn active" onclick="goTab('cal',this)"><span class="ni">📅</span><span>학사일정</span></button>
     <button class="nav-btn" onclick="goTab('todo',this)"><span class="ni">✅</span><span>할일목록</span></button>
+    <button class="nav-btn" onclick="goTab('edu',this)"><span class="ni">📚</span><span>교육계획</span></button>
     <button class="nav-btn" onclick="goTab('note',this)"><span class="ni">📝</span><span>노트</span></button>
     <button class="nav-btn" onclick="goTab('obs',this)"><span class="ni">👁️</span><span>학생관찰</span></button>
     <button class="nav-btn" onclick="goTab('parent',this)"><span class="ni">🤝</span><span>부모상담</span></button>
     <button class="nav-btn" onclick="goTab('chk',this)"><span class="ni">📋</span><span>체크리스트</span></button>
-    <button class="nav-btn" onclick="goTab('edu',this)"><span class="ni">📚</span><span>교육계획</span></button>
     <button class="nav-btn" onclick="goTab('contact',this)"><span class="ni">📒</span><span>연락망</span></button>
   </nav>
 
@@ -2396,14 +2392,15 @@ function renderEduPlans() {
 function eduNewPlan() {
   var name = prompt('교육계획 이름을 입력하세요: (예: 2026년 6월)');
   if(!name||!name.trim()) return;
+  var now = new Date();
+  var yr = now.getFullYear(), mo = now.getMonth()+1;
+  var m = name.trim().match(/(\d{4})[^\d]+(\d{1,2})/);
+  if(m) { yr = parseInt(m[1]); mo = parseInt(m[2]); }
   var data = {
-    name: name.trim(),
-    weeks: 4,
+    name: name.trim(), year: yr, month: mo, weeks: 4,
     rows: JSON.parse(JSON.stringify(EDU_DEFAULT_ROWS)),
-    metas: {},
-    cells: {},
-    createdAt: new Date().toISOString(),
-    updatedAt: new Date().toISOString()
+    metas: {}, cells: {},
+    createdAt: new Date().toISOString(), updatedAt: new Date().toISOString()
   };
   ucol('eduPlans').add(data).then(function(ref){ eduOpenPlan(ref.id); });
 }
@@ -2416,6 +2413,7 @@ function eduOpenPlan(id) {
   if(!curEduData.metas) curEduData.metas = {};
   if(!curEduData.cells) curEduData.cells = {};
   if(!curEduData.rows) curEduData.rows = JSON.parse(JSON.stringify(EDU_DEFAULT_ROWS));
+  if(!curEduData.year) { var now=new Date(); curEduData.year=now.getFullYear(); curEduData.month=now.getMonth()+1; }
   document.getElementById('eduDetailTitle').textContent = p.name;
   document.getElementById('eduListView').style.display = 'none';
   document.getElementById('eduDetailView').style.display = '';
@@ -2444,200 +2442,202 @@ function eduDeletePlan(id) {
   ucol('eduPlans').doc(id).delete();
 }
 
-function renderEduDetail() {
-  renderEduMetas();
-  renderEduTable();
-}
-
-function renderEduMetas() {
-  var wrap = document.getElementById('eduWeekMetas');
-  if(!wrap) return;
-  var weeks = curEduData.weeks || 4;
-  var html = '';
-  for(var w=0; w<weeks; w++) {
-    var m = (curEduData.metas && curEduData.metas['w'+w]) || {};
-    html += '<div style="flex:1;min-width:120px;background:#f8f6ee;border:1px solid #e0d8b0;border-radius:8px;padding:8px 10px">' +
-      '<div style="font-size:11px;font-weight:700;color:var(--cover);margin-bottom:5px">'+(w+1)+'주차</div>' +
-      '<div style="font-size:10px;color:var(--ink-soft);margin-bottom:2px">소주제</div>' +
-      '<div onclick="eduEditMeta('+w+',\'topic\')" style="font-size:12px;color:var(--ink);min-height:18px;cursor:pointer;border-bottom:1px dashed #c8c0a0;padding-bottom:2px;margin-bottom:4px">'+
-        (m.topic ? esc(m.topic) : '<span style="color:#ccc">탭하여 입력</span>')+
-      '</div>' +
-      '<div style="font-size:10px;color:var(--ink-soft);margin-bottom:2px">행사</div>' +
-      '<div onclick="eduEditMeta('+w+',\'event\')" style="font-size:12px;color:var(--ink);min-height:18px;cursor:pointer;border-bottom:1px dashed #c8c0a0;padding-bottom:2px;margin-bottom:4px">'+
-        (m.event ? esc(m.event) : '<span style="color:#ccc">탭하여 입력</span>')+
-      '</div>' +
-      '<div style="font-size:10px;color:var(--ink-soft);margin-bottom:2px">수업/업무</div>' +
-      '<div onclick="eduEditMeta('+w+',\'work\')" style="font-size:12px;color:var(--ink);min-height:18px;cursor:pointer">'+
-        (m.work ? esc(m.work) : '<span style="color:#ccc">탭하여 입력</span>')+
-      '</div>' +
-    '</div>';
+/* ISO 8601: 목요일이 포함된 주 = 1주차 */
+function eduGetWeeks(year, month) {
+  var weeks = [], weekMap = {};
+  var daysInMonth = new Date(year, month, 0).getDate();
+  for(var d=1; d<=daysInMonth; d++) {
+    var dt = new Date(year, month-1, d);
+    var dow = dt.getDay(); // 0=일,6=토
+    if(dow===0||dow===6) continue;
+    var dayOffset = (dow===0?6:dow-1);
+    var monOfWeek = new Date(dt.getTime()-dayOffset*86400000);
+    var thuOfWeek = new Date(monOfWeek.getTime()+3*86400000);
+    if(thuOfWeek.getFullYear()!==year||thuOfWeek.getMonth()+1!==month) continue;
+    var weekKey = thuOfWeek.toISOString().slice(0,10);
+    if(!weekMap[weekKey]) { weekMap[weekKey]={thu:thuOfWeek,dates:[]}; weeks.push(weekMap[weekKey]); }
+    weekMap[weekKey].dates.push({date:d, dow:dow});
   }
-  wrap.innerHTML = html;
+  weeks.sort(function(a,b){ return a.thu-b.thu; });
+  weeks.forEach(function(w){ w.dates.sort(function(a,b){ return a.date-b.date; }); });
+  return weeks;
 }
 
-function eduEditMeta(wi, field) {
-  if(!curEduData.metas) curEduData.metas = {};
-  if(!curEduData.metas['w'+wi]) curEduData.metas['w'+wi] = {};
-  var labels = {topic:'소주제', event:'행사', work:'수업/업무'};
-  var cur = curEduData.metas['w'+wi][field] || '';
-  var val = prompt((wi+1)+'주차 '+labels[field]+' 입력:', cur);
-  if(val === null) return;
-  curEduData.metas['w'+wi][field] = val.trim();
-  saveEduPlan();
-  renderEduMetas();
+function renderEduDetail() {
+  renderEduTable();
+  [3,4,5].forEach(function(n){
+    var btn=document.getElementById('eduWk'+n);
+    if(btn){ btn.className=(curEduData.weeks===n)?'chk-btn-blue':'chk-btn-gray'; btn.style.padding='4px 8px'; btn.style.fontSize='11px'; }
+  });
 }
 
 function renderEduTable() {
-  var tbl = document.getElementById('eduTable');
-  if(!tbl) return;
-  var rows = curEduData.rows || [];
-  var weeks = curEduData.weeks || 4;
+  var tbl=document.getElementById('eduTable');
+  if(!tbl||!curEduData) return;
+  var rows=curEduData.rows||[];
+  var maxWk=curEduData.weeks||4;
+  var year=curEduData.year||new Date().getFullYear();
+  var month=curEduData.month||new Date().getMonth()+1;
+  var allWeeks=eduGetWeeks(year,month);
+  var weeks=allWeeks.slice(0,maxWk);
+  var COL_CAT=54,COL_ROW=52,COL_DAY=48;
+  var html='<thead>';
+  html+='<tr>';
+  html+='<th rowspan="3" style="width:'+COL_CAT+'px;position:sticky;left:0;z-index:3;background:#16213e;font-size:9px;min-width:'+COL_CAT+'px">대분류</th>';
+  html+='<th rowspan="3" style="width:'+COL_ROW+'px;position:sticky;left:'+COL_CAT+'px;z-index:3;background:#1c2340;font-size:9px;min-width:'+COL_ROW+'px">영역</th>';
+  weeks.forEach(function(w,wi){ html+='<th colspan="'+w.dates.length+'" style="background:#1c2340;color:#f0e6c8;font-size:10px;border:1px solid #2d3a5e">'+(wi+1)+'주</th>'; });
+  html+='</tr><tr>';
+  weeks.forEach(function(w){ w.dates.forEach(function(d){ html+='<th style="width:'+COL_DAY+'px;font-size:9px;background:#1c2340;color:#c8d4e8;font-weight:400">'+d.date+'</th>'; }); });
+  html+='</tr><tr>';
+  var dowName=['','월','화','수','목','금'];
+  weeks.forEach(function(w){ w.dates.forEach(function(d){ html+='<th style="width:'+COL_DAY+'px;font-size:9px;background:#16213e;color:#a0b0c8;font-weight:400">'+dowName[d.dow]+'</th>'; }); });
+  html+='</tr></thead><tbody>';
 
-  // 대분류 그룹 계산
-  var cats = [];
-  rows.forEach(function(r) {
-    if(!cats.length || cats[cats.length-1].name !== r.cat) {
-      cats.push({name: r.cat, count: 1, startIdx: rows.indexOf(r)});
-    } else {
-      cats[cats.length-1].count++;
-    }
-  });
-
-  var CELL_W = 52;
-  var html = '<thead>' +
-    '<tr>' +
-      '<th style="width:54px;position:sticky;left:0;z-index:3;background:#16213e;font-size:9px">대분류</th>' +
-      '<th style="width:52px;position:sticky;left:54px;z-index:3;background:#1c2340;font-size:9px">영역</th>';
-  for(var w=0; w<weeks; w++) {
-    EDU_DAYS.forEach(function(d) {
-      html += '<th style="width:'+CELL_W+'px;font-size:9px">'+(w+1)+'주<br>'+d+'</th>';
-    });
-  }
-  html += '</tr></thead><tbody>';
-
-  // 대분류별 rowspan 계산
-  var catMap = {};
-  rows.forEach(function(r, ri) {
-    if(!catMap[r.cat]) catMap[r.cat] = {count:0, firstIdx:ri};
-    catMap[r.cat].count++;
-  });
-  var catRendered = {};
-
-  rows.forEach(function(r, ri) {
-    html += '<tr>';
-    // 대분류 셀 (rowspan)
-    if(!catRendered[r.cat]) {
-      catRendered[r.cat] = true;
-      html += '<td rowspan="'+catMap[r.cat].count+'" style="background:#f0f2f5;font-size:10px;font-weight:700;color:#2c3e50;text-align:center;vertical-align:middle;border:1px solid #c0c8d8;border-right:2px solid #c0c8d8;padding:3px 2px;position:sticky;left:0;z-index:1;word-break:keep-all;line-height:1.3;width:54px">'+esc(r.cat)+'</td>';
-    }
-    // 영역명 셀
-    html += '<td style="background:#f5f7fa;font-size:11px;font-weight:600;color:#2c3e50;text-align:center;vertical-align:middle;border:1px solid #c0c8d8;border-right:2px solid #c0c8d8;padding:3px 4px;position:sticky;left:54px;z-index:1;width:52px;word-break:keep-all;line-height:1.3">'+esc(r.label)+'</td>';
-    // 셀들
-    for(var w=0; w<weeks; w++) {
-      for(var di=0; di<5; di++) {
-        var key = 'w'+w+'d'+di+'_'+r.label;
-        var val = (curEduData.cells && curEduData.cells[key]) || '';
-        html += '<td style="border:1px solid #dde2ea;padding:2px 3px;vertical-align:top;cursor:pointer;min-height:36px;width:'+CELL_W+'px" onclick="eduCellClick(\''+key+'\')">'+
-          '<div style="font-size:10px;color:#2c3e50;line-height:1.4;white-space:pre-wrap;word-break:break-all;min-height:30px">'+esc(val)+'</div>'+
-        '</td>';
+  var metaRows=[
+    {key:'topic',label:'소주제',bg:'#f0f4e8',color:'#2e5c1e'},
+    {key:'event',label:'행사',  bg:'#fef3e2',color:'#7a4500'},
+    {key:'work', label:'수업',  bg:'#e8f0fe',color:'#1a3e8a'},
+    {key:'task', label:'업무',  bg:'#f5f0fe',color:'#4a2080'},
+  ];
+  metaRows.forEach(function(mr){
+    html+='<tr>';
+    html+='<td colspan="2" style="background:'+mr.bg+';font-size:10px;font-weight:700;color:'+mr.color+';text-align:center;border:1px solid #dde2ea;padding:3px 4px;position:sticky;left:0;z-index:2;min-width:'+(COL_CAT+COL_ROW)+'px">'+mr.label+'</td>';
+    weeks.forEach(function(w,wi){
+      if(mr.key==='topic'){
+        var val=(curEduData.metas['w'+wi]||{})[mr.key]||'';
+        html+='<td colspan="'+w.dates.length+'" style="background:'+mr.bg+';border:1px solid #dde2ea;padding:3px 5px;cursor:pointer;text-align:center;vertical-align:middle" onclick="eduMetaClick('+wi+',\'topic\')">'
+          +'<div style="font-size:11px;color:'+mr.color+';min-height:18px;font-weight:600">'+(val?esc(val):'<span style="color:#ccc;font-size:9px">탭하여입력</span>')+'</div></td>';
+      } else {
+        w.dates.forEach(function(d){
+          var dateStr=year+'-'+String(month).padStart(2,'0')+'-'+String(d.date).padStart(2,'0');
+          var val=(curEduData.cells||{})[mr.key+'_'+dateStr]||'';
+          var calEvt='';
+          if(mr.key==='event' && typeof calEvents!=='undefined'){
+            var matched=calEvents.filter(function(ev){
+              if(!ev._calName||ev._calName.indexOf('학사일정')<0) return false;
+              var s=(ev.start.date||ev.start.dateTime||'').slice(0,10);
+              var e=(ev.end.date||ev.end.dateTime||'').slice(0,10);
+              if(ev.start.date){ var ed=new Date(e); ed.setDate(ed.getDate()-1); return dateStr>=s&&dateStr<=ed.toISOString().slice(0,10); }
+              return s===dateStr;
+            });
+            calEvt=matched.map(function(ev){ return ev.summary||''; }).join(', ');
+          }
+          html+='<td style="background:'+mr.bg+';border:1px solid #dde2ea;padding:2px 3px;cursor:pointer;vertical-align:top;width:'+COL_DAY+'px" onclick="eduMetaDateClick(\''+mr.key+'\',\''+dateStr+'\')">'
+            +'<div style="font-size:9px;color:'+mr.color+';min-height:18px;line-height:1.3;word-break:break-all">'
+            +(calEvt&&!val?'<span style="color:#c08000">'+esc(calEvt)+'</span>':'')
+            +(val?esc(val):'')
+            +(!val&&!calEvt?'<span style="color:#ddd;font-size:8px">+</span>':'')
+            +'</div></td>';
+        });
       }
+    });
+    html+='</tr>';
+  });
+
+  var catMap={},catRendered={};
+  rows.forEach(function(r){ if(!catMap[r.cat]) catMap[r.cat]={count:0}; catMap[r.cat].count++; });
+  rows.forEach(function(r){
+    html+='<tr>';
+    if(!catRendered[r.cat]){
+      catRendered[r.cat]=true;
+      html+='<td rowspan="'+catMap[r.cat].count+'" style="background:#f0f2f5;font-size:10px;font-weight:700;color:#2c3e50;text-align:center;vertical-align:middle;border:1px solid #c0c8d8;border-right:2px solid #c0c8d8;padding:3px 2px;position:sticky;left:0;z-index:1;word-break:keep-all;line-height:1.3;min-width:'+COL_CAT+'px">'+esc(r.cat)+'</td>';
     }
-    html += '</tr>';
+    html+='<td style="background:#f5f7fa;font-size:11px;font-weight:600;color:#2c3e50;text-align:center;vertical-align:middle;border:1px solid #c0c8d8;border-right:2px solid #c0c8d8;padding:3px 4px;position:sticky;left:'+COL_CAT+'px;z-index:1;word-break:keep-all;line-height:1.3;min-width:'+COL_ROW+'px">'+esc(r.label)+'</td>';
+    weeks.forEach(function(w){
+      w.dates.forEach(function(d){
+        var dateStr=year+'-'+String(month).padStart(2,'0')+'-'+String(d.date).padStart(2,'0');
+        var key='row_'+r.label+'_'+dateStr;
+        var val=(curEduData.cells||{})[key]||'';
+        html+='<td style="border:1px solid #dde2ea;padding:2px 3px;vertical-align:top;cursor:pointer;width:'+COL_DAY+'px" onclick="eduCellClick(\''+esc(key)+'\',\''+esc(r.label)+'\',\''+dateStr+'\')">'
+          '<div style="font-size:10px;color:#2c3e50;line-height:1.35;white-space:pre-wrap;word-break:break-all;min-height:28px">'+(val?esc(val):'')+'</div></td>';
+      });
+    });
+    html+='</tr>';
   });
-  html += '</tbody>';
-  tbl.innerHTML = html;
+  tbl.innerHTML=html+'</tbody>';
 }
 
-function eduCellClick(key) {
-  var cur = (curEduData.cells && curEduData.cells[key]) || '';
-  // 간단한 인라인 편집 모달
-  var parts = key.split('_'); // w0d1_영역명
-  var wdPart = parts[0]; // w0d1
-  var label = parts.slice(1).join('_');
-  var wNum = parseInt(wdPart.replace(/w(\d+)d\d+/,'$1')) + 1;
-  var dIdx = parseInt(wdPart.replace(/w\d+d(\d+)/,'$1'));
-  var dName = EDU_DAYS[dIdx] || '';
-  document.getElementById('eduCellKey').value = key;
-  document.getElementById('eduCellLabel').textContent = wNum+'주차 '+dName+'요일 · '+label;
-  document.getElementById('eduCellText').value = cur;
+function eduMetaClick(wi,field){
+  if(!curEduData.metas) curEduData.metas={};
+  if(!curEduData.metas['w'+wi]) curEduData.metas['w'+wi]={};
+  var cur=curEduData.metas['w'+wi][field]||'';
+  var val=prompt((wi+1)+'주차 소주제 입력:',cur);
+  if(val===null) return;
+  curEduData.metas['w'+wi][field]=val.trim();
+  saveEduPlan(); renderEduTable();
+}
+
+function eduMetaDateClick(field,dateStr){
+  if(!curEduData.cells) curEduData.cells={};
+  var labels={event:'행사',work:'수업',task:'업무'};
+  var cur=curEduData.cells[field+'_'+dateStr]||'';
+  var val=prompt(dateStr+' '+labels[field]+' 입력:',cur);
+  if(val===null) return;
+  var k=field+'_'+dateStr;
+  if(val.trim()) curEduData.cells[k]=val.trim(); else delete curEduData.cells[k];
+  saveEduPlan(); renderEduTable();
+}
+
+function eduCellClick(key,label,dateStr){
+  document.getElementById('eduCellKey').value=key;
+  document.getElementById('eduCellLabel').textContent=dateStr+' · '+label;
+  document.getElementById('eduCellText').value=(curEduData.cells||{})[key]||'';
   document.getElementById('eduCellOverlay').classList.add('show');
-  setTimeout(function(){ document.getElementById('eduCellText').focus(); }, 100);
+  setTimeout(function(){ document.getElementById('eduCellText').focus(); },100);
 }
 
-function eduSaveCell() {
-  var key = document.getElementById('eduCellKey').value;
-  var val = document.getElementById('eduCellText').value.trim();
-  if(!curEduData.cells) curEduData.cells = {};
-  if(val) curEduData.cells[key] = val;
-  else delete curEduData.cells[key];
+function eduSaveCell(){
+  var key=document.getElementById('eduCellKey').value;
+  var val=document.getElementById('eduCellText').value.trim();
+  if(!curEduData.cells) curEduData.cells={};
+  if(val) curEduData.cells[key]=val; else delete curEduData.cells[key];
   closeOverlay('eduCellOverlay');
-  saveEduPlan();
-  renderEduTable();
+  saveEduPlan(); renderEduTable();
 }
 
-function eduAddCategory() {
-  var cat = prompt('새 대분류 이름:');
-  if(!cat||!cat.trim()) return;
-  var label = prompt('첫 번째 영역 이름:');
-  if(!label||!label.trim()) return;
-  curEduData.rows.push({cat:cat.trim(), label:label.trim()});
-  saveEduPlan();
-  renderEduTable();
+function eduAddCategory(){
+  var cat=prompt('새 대분류 이름:'); if(!cat||!cat.trim()) return;
+  var label=prompt('첫 번째 영역 이름:'); if(!label||!label.trim()) return;
+  curEduData.rows.push({cat:cat.trim(),label:label.trim()});
+  saveEduPlan(); renderEduTable();
 }
 
-function eduAddRow() {
-  // 기존 대분류 선택
-  var cats = [];
+function eduAddRow(){
+  var cats=[];
   (curEduData.rows||[]).forEach(function(r){ if(cats.indexOf(r.cat)<0) cats.push(r.cat); });
-  var catStr = cats.map(function(c,i){ return (i+1)+'. '+c; }).join('\n');
-  var catIdx = prompt('영역을 추가할 대분류 번호를 선택하세요:\n'+catStr+'\n\n새 대분류는 0 입력:');
-  if(catIdx === null) return;
+  var catStr=cats.map(function(c,i){ return (i+1)+'. '+c; }).join('\n');
+  var catIdx=prompt('영역을 추가할 대분류 번호:\n'+catStr+'\n\n새 대분류는 0 입력:');
+  if(catIdx===null) return;
   var cat;
-  if(catIdx.trim() === '0') {
-    cat = prompt('새 대분류 이름:');
-    if(!cat||!cat.trim()) return;
-    cat = cat.trim();
-  } else {
-    var idx = parseInt(catIdx)-1;
-    if(isNaN(idx)||idx<0||idx>=cats.length) { alert('올바른 번호를 입력해주세요.'); return; }
-    cat = cats[idx];
-  }
-  var label = prompt('새 영역 이름:');
-  if(!label||!label.trim()) return;
-  // 해당 대분류의 마지막 위치에 삽입
-  var lastIdx = -1;
+  if(catIdx.trim()==='0'){ cat=prompt('새 대분류 이름:'); if(!cat||!cat.trim()) return; cat=cat.trim(); }
+  else { var idx=parseInt(catIdx)-1; if(isNaN(idx)||idx<0||idx>=cats.length){ alert('올바른 번호를 입력해주세요.'); return; } cat=cats[idx]; }
+  var label=prompt('새 영역 이름:'); if(!label||!label.trim()) return;
+  var lastIdx=-1;
   (curEduData.rows||[]).forEach(function(r,i){ if(r.cat===cat) lastIdx=i; });
-  if(lastIdx >= 0) curEduData.rows.splice(lastIdx+1, 0, {cat:cat, label:label.trim()});
-  else curEduData.rows.push({cat:cat, label:label.trim()});
-  saveEduPlan();
-  renderEduTable();
+  if(lastIdx>=0) curEduData.rows.splice(lastIdx+1,0,{cat:cat,label:label.trim()});
+  else curEduData.rows.push({cat:cat,label:label.trim()});
+  saveEduPlan(); renderEduTable();
 }
 
-function eduDeleteRowModal() {
-  var rows = curEduData.rows || [];
-  if(!rows.length) { alert('삭제할 영역이 없습니다.'); return; }
-  var list = rows.map(function(r,i){ return (i+1)+'. ['+r.cat+'] '+r.label; }).join('\n');
-  var input = prompt('삭제할 영역 번호 (쉼표로 여러 개):\n'+list);
+function eduDeleteRowModal(){
+  var rows=curEduData.rows||[];
+  if(!rows.length){ alert('삭제할 영역이 없습니다.'); return; }
+  var list=rows.map(function(r,i){ return (i+1)+'. ['+r.cat+'] '+r.label; }).join('\n');
+  var input=prompt('삭제할 영역 번호 (쉼표로 여러 개):\n'+list);
   if(!input) return;
-  var indices = input.split(',').map(function(s){ return parseInt(s.trim())-1; }).filter(function(i){ return !isNaN(i)&&i>=0&&i<rows.length; });
+  var indices=input.split(',').map(function(s){ return parseInt(s.trim())-1; }).filter(function(i){ return !isNaN(i)&&i>=0&&i<rows.length; });
   if(!indices.length) return;
-  var names = indices.map(function(i){ return rows[i].label; }).join(', ');
-  if(!confirm('['+names+'] 영역을 삭제하시겠습니까?\n관련 계획 내용도 함께 삭제됩니다.')) return;
-  // 셀 삭제
-  indices.forEach(function(i) {
-    var label = rows[i].label;
-    Object.keys(curEduData.cells||{}).forEach(function(k){ if(k.split('_').slice(1).join('_')===label) delete curEduData.cells[k]; });
-  });
-  curEduData.rows = rows.filter(function(_,i){ return indices.indexOf(i)<0; });
-  saveEduPlan();
-  renderEduTable();
+  var names=indices.map(function(i){ return rows[i].label; }).join(', ');
+  if(!confirm('['+names+'] 삭제하시겠습니까?')) return;
+  indices.forEach(function(i){ var label=rows[i].label; Object.keys(curEduData.cells||{}).forEach(function(k){ if(k.indexOf('row_'+label+'_')===0) delete curEduData.cells[k]; }); });
+  curEduData.rows=rows.filter(function(_,i){ return indices.indexOf(i)<0; });
+  saveEduPlan(); renderEduTable();
 }
 
-function eduWeeksChange(n) {
+function eduWeeksChange(n){
   if(!curEduData) return;
-  curEduData.weeks = n;
-  saveEduPlan();
-  renderEduDetail();
+  curEduData.weeks=n;
+  saveEduPlan(); renderEduDetail();
 }
 
 function exportWord(type) {
