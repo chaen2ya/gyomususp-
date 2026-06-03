@@ -209,6 +209,44 @@ body{background:var(--cover);color:var(--ink);display:flex;flex-direction:column
 .obs-detail-foot .btn-edit-sm,.obs-detail-foot .btn-del-sm{flex:1;padding:10px;font-size:13px;border-radius:8px}
 
 /* ── CHECKLIST ── */
+/* 목록 뷰 */
+.chk-new-btn{width:100%;padding:11px;background:var(--cover);color:#fff;border:none;
+  border-radius:8px;font-size:14px;font-family:'MyHandwriting','Noto Sans KR',sans-serif;cursor:pointer;margin-bottom:14px}
+.chk-sheet-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:12px;padding-bottom:8px}
+@media(min-width:600px){.chk-sheet-grid{grid-template-columns:repeat(3,1fr)}}
+.chk-sheet-card{
+  background:#fff;border-radius:10px;padding:0;
+  box-shadow:2px 3px 10px rgba(0,0,0,0.12);
+  cursor:pointer;overflow:hidden;display:flex;flex-direction:column;
+  aspect-ratio:3/4;border:1px solid #dde2ea;
+  transition:transform .15s,box-shadow .15s;
+}
+.chk-sheet-card:active{transform:scale(.97);box-shadow:1px 2px 6px rgba(0,0,0,0.1)}
+.chk-sheet-card-tab{height:8px;background:var(--cover);flex-shrink:0}
+.chk-sheet-card-inner{flex:1;overflow:hidden;padding:8px 9px 6px;position:relative;
+  background-image:repeating-linear-gradient(transparent,transparent 17px,rgba(180,200,220,0.5) 17px,rgba(180,200,220,0.5) 18px);}
+.chk-sheet-card-name{font-size:11px;font-weight:700;color:var(--cover);
+  border-bottom:1px solid rgba(44,67,130,0.25);padding-bottom:3px;margin-bottom:5px;
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.chk-sheet-card-preview{font-size:9px;color:var(--ink-soft);line-height:1.6;
+  overflow:hidden;display:-webkit-box;-webkit-line-clamp:8;-webkit-box-orient:vertical;}
+.chk-sheet-card-meta{position:absolute;bottom:5px;right:7px;font-size:9px;color:#b8a878}
+.chk-sheet-card-del{position:absolute;top:4px;right:4px;background:rgba(192,57,43,0.1);
+  border:none;color:#c0392b;border-radius:4px;font-size:10px;padding:2px 5px;cursor:pointer;
+  font-family:'MyHandwriting','Noto Sans KR',sans-serif;display:none}
+.chk-sheet-card:hover .chk-sheet-card-del{display:block}
+
+/* 상세 뷰 헤더 */
+.chk-detail-hdr{display:flex;align-items:center;gap:8px;margin-bottom:12px;padding-bottom:8px;
+  border-bottom:2px solid var(--cover)}
+.chk-back-btn{background:none;border:none;color:var(--cover);font-size:13px;font-weight:700;
+  cursor:pointer;font-family:'MyHandwriting','Noto Sans KR',sans-serif;padding:4px 8px;
+  border-radius:6px;white-space:nowrap}
+.chk-back-btn:active{background:#e8ecf4}
+.chk-detail-title{flex:1;font-family:'Jua',sans-serif;font-size:17px;color:var(--cover);
+  overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.chk-rename-btn{background:none;border:none;cursor:pointer;font-size:15px;padding:4px;flex-shrink:0}
+
 .chk-toolbar{display:flex;gap:6px;margin-bottom:12px;flex-wrap:wrap}
 .chk-toolbar button{padding:7px 11px;border:none;border-radius:6px;cursor:pointer;
   font-size:12px;font-family:'MyHandwriting','Noto Sans KR',sans-serif;font-weight:500}
@@ -523,15 +561,28 @@ body{background:var(--cover);color:var(--ink);display:flex;flex-direction:column
 
     <!-- ⑥ 체크리스트 -->
     <section id="sec-chk" class="tab-sec">
-      <h2 class="sec-title">📋 우리반 체크리스트</h2>
-      <div class="chk-toolbar">
-        <button class="chk-btn-blue" onclick="chkAddStudent()">+ 학생</button>
-        <button class="chk-btn-blue" onclick="chkAddItem()">+ 항목</button>
-        <button class="chk-btn-red" onclick="chkOpenDelModal()">삭제</button>
-        <button class="chk-btn-gray" onclick="chkResetChecks()">체크 초기화</button>
+      <!-- 목록 뷰 -->
+      <div id="chkListView">
+        <h2 class="sec-title">📋 체크리스트</h2>
+        <button class="chk-new-btn" onclick="chkNewSheet()">+ 새 체크리스트 만들기</button>
+        <div id="chkSheetGrid"></div>
       </div>
-      <div class="chk-wrap">
-        <table class="chk-table" id="chkTable"></table>
+      <!-- 상세 뷰 -->
+      <div id="chkDetailView" style="display:none">
+        <div class="chk-detail-hdr">
+          <button class="chk-back-btn" onclick="chkGoBack()">← 목록</button>
+          <div class="chk-detail-title" id="chkDetailTitle"></div>
+          <button class="chk-rename-btn" onclick="chkRenameSheet()">✏️</button>
+        </div>
+        <div class="chk-toolbar">
+          <button class="chk-btn-blue" onclick="chkAddStudent()">+ 학생</button>
+          <button class="chk-btn-blue" onclick="chkAddItem()">+ 항목</button>
+          <button class="chk-btn-red" onclick="chkOpenDelModal()">삭제</button>
+          <button class="chk-btn-gray" onclick="chkResetChecks()">초기화</button>
+        </div>
+        <div class="chk-wrap">
+          <table class="chk-table" id="chkTable"></table>
+        </div>
       </div>
     </section>
 
@@ -732,6 +783,8 @@ const db   = firebase.firestore();
 var uid = null;
 var todos = [], obs = [], staff = [], studs = [], notes = [], parentConsults = [];
 var chkData = { students:[], items:[], cells:{} };
+var chkSheets = [];        // 체크리스트 목록
+var curChkId  = null;      // 현재 열린 체크리스트 ID
 var curFilter = 'all', chkTarget = null;
 var unsubscribers = [];
 
@@ -789,7 +842,7 @@ function onDocLoaded() {
   if(loadCount >= TOTAL_DOCS && !appReady) {
     appReady = true;
     showApp();
-    renderTodos(); renderObs(); renderChk(); renderStaff(); renderStudents(); renderNotes(); renderParents();
+    renderTodos(); renderObs(); renderChkSheets(); renderStaff(); renderStudents(); renderNotes(); renderParents();
   }
 }
 
@@ -813,14 +866,22 @@ function setupListeners() {
     if(appReady) renderStudents();
     onDocLoaded();
   }));
-  unsubscribers.push(uref('data/checklist').onSnapshot(function(snap) {
-    if(snap.exists) {
-      chkData = snap.data();
-      chkData.cells = chkData.cells || {};
-    } else {
-      chkData = { students:[], items:[], cells:{} };
-    }
-    if(appReady) renderChk();
+  unsubscribers.push(ucol('checklists').onSnapshot(function(snap) {
+    chkSheets = snap.docs.map(function(d){ return Object.assign({id: d.id}, d.data()); });
+    // 기존 data/checklist 마이그레이션 (최초 1회)
+    uref('data/checklist').get().then(function(old) {
+      if(old.exists && chkSheets.length === 0) {
+        var d = old.data();
+        if((d.students&&d.students.length)||(d.items&&d.items.length)) {
+          ucol('checklists').add({
+            name: '기존 체크리스트',
+            students: d.students||[], items: d.items||[], cells: d.cells||{},
+            createdAt: new Date().toISOString()
+          }).then(function(){ uref('data/checklist').delete(); });
+        }
+      }
+    });
+    if(appReady) renderChkSheets();
     onDocLoaded();
   }));
   unsubscribers.push(uref('data/settings').onSnapshot(function(snap) {
@@ -852,7 +913,10 @@ function ucol(path) { return db.collection('users/'+uid+'/'+path); }
 function saveTodos()    { uref('data/todos').set({items: todos}); }
 function saveStaff()    { uref('data/staff').set({items: staff}); }
 function saveStudents() { uref('data/students').set({items: studs}); }
-function saveChk()      { uref('data/checklist').set(chkData); }
+function saveChk() {
+  if(!curChkId) return;
+  ucol('checklists').doc(curChkId).set(chkData, {merge:true});
+}
 function saveNotes()    { uref('data/notes').set({items: notes}); }
 
 function goTab(id, btn) {
@@ -861,6 +925,12 @@ function goTab(id, btn) {
   document.getElementById('sec-'+id).classList.add('active');
   btn.classList.add('active');
   document.querySelector('.content-inner').scrollTop = 0;
+  // 체크리스트 탭 전환 시 목록 뷰로 복귀
+  if(id === 'chk') {
+    curChkId = null;
+    document.getElementById('chkDetailView').style.display = 'none';
+    document.getElementById('chkListView').style.display   = '';
+  }
 }
 
 function applyCalendar() {
@@ -1020,6 +1090,73 @@ document.getElementById('obsDetailOverlay').addEventListener('click', function(e
   if(e.target === this) closeObsDetail();
 });
 
+/* ── 체크리스트 목록 ── */
+function renderChkSheets() {
+  var grid = document.getElementById('chkSheetGrid');
+  if(!grid) return;
+  if(!chkSheets.length) {
+    grid.innerHTML = '<div class="empty"><div class="ei">📋</div><p>체크리스트를 만들어보세요.</p></div>';
+    return;
+  }
+  var html = '<div class="chk-sheet-grid">';
+  chkSheets.forEach(function(s) {
+    var students = (s.students||[]).slice(0,6).map(function(st){ return st.name; }).join(', ');
+    var items    = (s.items||[]).slice(0,8).map(function(it){ return '· '+it.label; }).join('\n');
+    var preview  = (students ? '👥 '+students+'\n\n' : '') + (items || '');
+    html += '<div class="chk-sheet-card" onclick="chkOpenSheet(\''+s.id+'\')">'+
+      '<div class="chk-sheet-card-tab"></div>'+
+      '<div class="chk-sheet-card-inner">'+
+        '<div class="chk-sheet-card-name">'+esc(s.name)+'</div>'+
+        '<div class="chk-sheet-card-preview">'+esc(preview)+'</div>'+
+        '<div class="chk-sheet-card-meta">'+
+          (s.students&&s.students.length ? s.students.length+'명' : '')+
+          (s.items&&s.items.length ? ' / '+s.items.length+'항목' : '')+
+        '</div>'+
+        '<button class="chk-sheet-card-del" onclick="event.stopPropagation();chkDeleteSheet(\''+s.id+'\')">🗑️</button>'+
+      '</div>'+
+    '</div>';
+  });
+  html += '</div>';
+  grid.innerHTML = html;
+}
+function chkNewSheet() {
+  var name = prompt('체크리스트 이름을 입력하세요:');
+  if(!name||!name.trim()) return;
+  ucol('checklists').add({
+    name: name.trim(), students:[], items:[], cells:{},
+    createdAt: new Date().toISOString()
+  }).then(function(ref){ chkOpenSheet(ref.id); });
+}
+function chkOpenSheet(id) {
+  var s = chkSheets.find(function(x){ return x.id===id; });
+  if(!s) return;
+  curChkId = id;
+  chkData = { name:s.name, students:s.students||[], items:s.items||[], cells:s.cells||{} };
+  document.getElementById('chkDetailTitle').textContent = s.name;
+  document.getElementById('chkListView').style.display  = 'none';
+  document.getElementById('chkDetailView').style.display = '';
+  document.querySelector('.content-inner').scrollTop = 0;
+  renderChk();
+}
+function chkGoBack() {
+  curChkId = null;
+  document.getElementById('chkDetailView').style.display = 'none';
+  document.getElementById('chkListView').style.display   = '';
+  document.querySelector('.content-inner').scrollTop = 0;
+}
+function chkRenameSheet() {
+  if(!curChkId) return;
+  var name = prompt('새 이름:', chkData.name||'');
+  if(!name||!name.trim()) return;
+  chkData.name = name.trim();
+  document.getElementById('chkDetailTitle').textContent = name.trim();
+  saveChk();
+}
+function chkDeleteSheet(id) {
+  var s = chkSheets.find(function(x){ return x.id===id; });
+  if(!confirm((s?'['+s.name+'] ':'')+'체크리스트를 삭제하시겠습니까?')) return;
+  ucol('checklists').doc(id).delete();
+}
 function chkAddStudent() {
   var raw = prompt('학생 이름 입력 (여러 명은 쉼표로 구분):');
   if(!raw||!raw.trim()) return;
@@ -1089,7 +1226,7 @@ function chkApplyEtc() {
 function renderChk() {
   var tbl=document.getElementById('chkTable'), ss=chkData.students, its=chkData.items;
   if(!ss.length&&!its.length){
-    tbl.innerHTML='<tr><td colspan="99" style="padding:40px;text-align:center;color:#aaa;font-size:13px">학생과 항목을 추가하세요.</td></tr>';
+    tbl.innerHTML='<tr><td colspan="99" style="padding:40px;text-align:center;color:#aaa;font-size:13px">+ 학생과 항목을 추가하세요.</td></tr>';
     return;
   }
   var html='<thead><tr><th style="position:sticky;left:0;z-index:3;background:#16213e;width:42px;">이름</th>';
@@ -1105,6 +1242,9 @@ function renderChk() {
     html+='</tr>';
   });
   tbl.innerHTML=html+'</tbody>';
+  // Firestore 실시간 반영: 현재 시트 데이터 업데이트
+  var cur = chkSheets.find(function(x){ return x.id===curChkId; });
+  if(cur){ cur.students=chkData.students; cur.items=chkData.items; cur.cells=chkData.cells; }
 }
 document.addEventListener('click', function(e){
   var popup=document.getElementById('chkPopup');
