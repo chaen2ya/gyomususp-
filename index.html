@@ -501,43 +501,54 @@ body{background:var(--cover);color:var(--ink);display:flex;flex-direction:column
 .edu-cover-card{
   position:relative;border-radius:12px;
   aspect-ratio:3/4;cursor:pointer;overflow:hidden;
-  display:flex;align-items:center;justify-content:center;
+  display:block;
   box-shadow:3px 4px 14px rgba(0,0,0,0.25);
   transition:transform .15s,box-shadow .15s;
 }
 .edu-cover-card:active{transform:scale(.97);box-shadow:1px 2px 8px rgba(0,0,0,0.2)}
+/* 마블 패턴 오버레이 */
+.edu-cover-marble{
+  position:absolute;inset:0;
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='200'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='200' height='200' filter='url(%23n)' opacity='0.35'/%3E%3C/svg%3E");
+  background-size:200px 200px;
+  mix-blend-mode:multiply;
+  pointer-events:none;
+}
 .edu-cover-label{
-  background:rgba(255,255,255,0.95);
+  position:absolute;
+  top:18%;left:50%;transform:translateX(-50%);
+  width:78%;
+  background:rgba(255,255,255,0.96);
   border:2px solid #222;border-radius:8px;
-  padding:14px 18px;text-align:center;
-  min-width:70%;max-width:85%;
-  box-shadow:2px 3px 8px rgba(0,0,0,0.3);
-  position:relative;z-index:1;
+  padding:14px 16px 12px;text-align:center;
+  box-shadow:2px 3px 10px rgba(0,0,0,0.35);
+  z-index:2;
 }
 .edu-cover-label::before{
-  content:'';position:absolute;inset:4px;
-  border:1px solid #555;border-radius:5px;pointer-events:none;
+  content:'';position:absolute;inset:5px;
+  border:1px solid #777;border-radius:5px;pointer-events:none;
 }
 .edu-cover-title{
   font-family:'Jua',sans-serif;font-size:22px;
   color:#111;font-weight:700;line-height:1.2;
-  margin-bottom:8px;
+  margin-bottom:10px;
 }
 .edu-cover-period{
-  font-size:12px;color:#444;font-weight:500;
-  border-top:1px solid #ccc;padding-top:6px;margin-top:4px;
+  font-size:11px;color:#444;font-weight:500;
+  border-top:1px solid #bbb;padding-top:6px;margin-top:2px;
+  letter-spacing:0.3px;
 }
 .edu-cover-btn{
   position:absolute;top:7px;right:30px;
-  background:rgba(0,0,0,0.4);border:none;border-radius:6px;
+  background:rgba(0,0,0,0.45);border:none;border-radius:6px;
   padding:3px 6px;font-size:13px;cursor:pointer;
-  display:none;color:#fff;
+  display:none;color:#fff;z-index:3;
 }
 .edu-cover-del{
   position:absolute;top:7px;right:7px;
-  background:rgba(0,0,0,0.4);border:none;border-radius:6px;
+  background:rgba(0,0,0,0.45);border:none;border-radius:6px;
   padding:3px 6px;font-size:13px;cursor:pointer;
-  display:none;color:#fff;
+  display:none;color:#fff;z-index:3;
 }
 .edu-cover-card:hover .edu-cover-btn,
 .edu-cover-card:hover .edu-cover-del{ display:block; }
@@ -995,21 +1006,37 @@ body{background:var(--cover);color:var(--ink);display:flex;flex-direction:column
     <div class="modal-title">🎨 표지 색상 설정</div>
     <input type="hidden" id="eduCoverPlanId">
     <div class="fg">
-      <label>배경 색상</label>
-      <div style="display:flex;gap:10px;align-items:center">
-        <input type="color" id="eduCoverColor1" value="#1a1f3a" style="width:56px;height:44px;border:none;cursor:pointer;border-radius:8px;padding:2px">
-        <input type="color" id="eduCoverColor2" value="#2d1b4e" style="width:56px;height:44px;border:none;cursor:pointer;border-radius:8px;padding:2px">
-        <span style="font-size:11px;color:var(--ink-soft)">← 시작색 / 끝색 (그라디언트)</span>
+      <label>무늬 색상 <span style="font-size:11px;color:var(--ink-soft)">(검은 바탕에 이 색으로 마블 패턴)</span></label>
+      <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap">
+        <input type="color" id="eduCoverMarbleColor" value="#f5c518" oninput="eduUpdateCoverPreview()" style="width:56px;height:44px;border:none;cursor:pointer;border-radius:8px;padding:2px">
+        <!-- 빠른 선택 팔레트 -->
+        <div style="display:flex;gap:6px;flex-wrap:wrap">
+          <div onclick="eduPickMarble('#f5c518')" style="width:28px;height:28px;background:#f5c518;border-radius:50%;cursor:pointer;border:2px solid #ccc" title="노랑"></div>
+          <div onclick="eduPickMarble('#ff6b6b')" style="width:28px;height:28px;background:#ff6b6b;border-radius:50%;cursor:pointer;border:2px solid #ccc" title="빨강"></div>
+          <div onclick="eduPickMarble('#74c0fc')" style="width:28px;height:28px;background:#74c0fc;border-radius:50%;cursor:pointer;border:2px solid #ccc" title="파랑"></div>
+          <div onclick="eduPickMarble('#69db7c')" style="width:28px;height:28px;background:#69db7c;border-radius:50%;cursor:pointer;border:2px solid #ccc" title="초록"></div>
+          <div onclick="eduPickMarble('#ffa94d')" style="width:28px;height:28px;background:#ffa94d;border-radius:50%;cursor:pointer;border:2px solid #ccc" title="주황"></div>
+          <div onclick="eduPickMarble('#da77f2')" style="width:28px;height:28px;background:#da77f2;border-radius:50%;cursor:pointer;border:2px solid #ccc" title="보라"></div>
+          <div onclick="eduPickMarble('#f783ac')" style="width:28px;height:28px;background:#f783ac;border-radius:50%;cursor:pointer;border:2px solid #ccc" title="핑크"></div>
+          <div onclick="eduPickMarble('#ffffff')" style="width:28px;height:28px;background:#ffffff;border-radius:50%;cursor:pointer;border:2px solid #ccc" title="흰색"></div>
+        </div>
       </div>
     </div>
     <div class="fg">
       <label>라벨 테두리 색</label>
-      <input type="color" id="eduCoverAccentColor" value="#333333" style="width:56px;height:44px;border:none;cursor:pointer;border-radius:8px;padding:2px">
+      <input type="color" id="eduCoverAccentColor" value="#222222" oninput="eduUpdateCoverPreview()" style="width:56px;height:44px;border:none;cursor:pointer;border-radius:8px;padding:2px">
     </div>
     <!-- 미리보기 -->
-    <div id="eduCoverPreview" style="border-radius:10px;height:100px;display:flex;align-items:center;justify-content:center;margin-top:4px;transition:background .2s">
-      <div id="eduCoverPreviewLabel" style="background:rgba(255,255,255,0.95);border-radius:8px;padding:8px 20px;text-align:center;min-width:60%">
-        <div style="font-family:'Jua',sans-serif;font-size:18px;color:#111" id="eduCoverPreviewName">제목</div>
+    <div id="eduCoverPreview" style="border-radius:10px;height:110px;position:relative;overflow:hidden;margin-top:4px;background:black">
+      <svg id="eduCoverPreviewSvg" style="position:absolute;inset:0;width:100%;height:100%" xmlns="http://www.w3.org/2000/svg">
+        <filter id="mfprev">
+          <feTurbulence type="fractalNoise" baseFrequency="0.65" numOctaves="4" seed="2" stitchTiles="stitch"/>
+          <feColorMatrix type="matrix" values="1 0 0 0 0  0 1 0 0 0  0 0 1 0 0  0 0 0 18 -7"/>
+        </filter>
+        <rect id="eduCoverPreviewRect" width="100%" height="100%" fill="#f5c518" filter="url(#mfprev)"/>
+      </svg>
+      <div id="eduCoverPreviewLabel" style="position:absolute;top:12px;left:50%;transform:translateX(-50%);width:75%;background:rgba(255,255,255,0.96);border:2px solid #222;border-radius:8px;padding:8px 12px;text-align:center;box-shadow:2px 3px 8px rgba(0,0,0,0.3)">
+        <div style="font-family:'Jua',sans-serif;font-size:16px;color:#111" id="eduCoverPreviewName">제목</div>
       </div>
     </div>
     <div class="modal-btns" style="margin-top:14px">
@@ -2473,17 +2500,24 @@ function renderEduPlans() {
       if(p.endYear)
         periodStr += '~'+String(p.endYear).slice(2)+'.'+String(p.endMonth).padStart(2,'0')+'.'+String(eD).padStart(2,'0');
     }
+    var marbleColor = p.marbleColor || '#f5c518'; // 기본: 노란색
+    var bg = 'black';
     html += '<div class="edu-cover-card" onclick="eduOpenPlan(\''+p.id+'\')" style="background:'+bg+'">'
-      // 장식 원들
-      +'<div style="position:absolute;width:120px;height:120px;border-radius:50%;background:rgba(255,255,255,0.04);top:-30px;right:-30px;pointer-events:none"></div>'
-      +'<div style="position:absolute;width:80px;height:80px;border-radius:50%;background:rgba(255,255,255,0.03);bottom:20px;left:-20px;pointer-events:none"></div>'
+      // 마블 패턴: SVG 인라인으로 색상 적용
+      +'<svg style="position:absolute;inset:0;width:100%;height:100%" xmlns="http://www.w3.org/2000/svg">'
+        +'<filter id="mf'+p.id+'">'
+          +'<feTurbulence type="fractalNoise" baseFrequency="0.65" numOctaves="4" seed="2" stitchTiles="stitch"/>'
+          +'<feColorMatrix type="matrix" values="1 0 0 0 0  0 1 0 0 0  0 0 1 0 0  0 0 0 18 -7"/>'
+        +'</filter>'
+        +'<rect width="100%" height="100%" fill="'+esc(marbleColor)+'" filter="url(#mf'+p.id+')"/>'
+      +'</svg>'
       // 라벨 스티커
       +'<div class="edu-cover-label" style="border-color:'+esc(accent)+'">'
         +'<div class="edu-cover-title">'+esc(p.name)+'</div>'
         +(periodStr?'<div class="edu-cover-period">'+periodStr+'</div>':'')
       +'</div>'
       // 하단 정보
-      +'<div style="position:absolute;bottom:8px;left:0;right:0;text-align:center;font-size:9px;color:rgba(255,255,255,0.4)">'
+      +'<div style="position:absolute;bottom:8px;left:0;right:0;text-align:center;font-size:9px;color:rgba(255,255,255,0.5);z-index:2">'
         +(p.rows?p.rows.length:0)+'개 영역'
       +'</div>'
       // 표지 변경 버튼
@@ -2500,40 +2534,35 @@ function eduOpenCoverModal(planId) {
   var p = eduPlans.find(function(x){ return x.id===planId; });
   if(!p) return;
   document.getElementById('eduCoverPlanId').value = planId;
-  // 기존 색상 복원
-  var c1 = p.coverC1 || '#1a1f3a';
-  var c2 = p.coverC2 || '#2d1b4e';
-  var ac = p.coverAccent || '#333333';
-  document.getElementById('eduCoverColor1').value = c1;
-  document.getElementById('eduCoverColor2').value = c2;
+  var mc = p.marbleColor || '#f5c518';
+  var ac = p.coverAccent || '#222222';
+  document.getElementById('eduCoverMarbleColor').value = mc;
   document.getElementById('eduCoverAccentColor').value = ac;
   document.getElementById('eduCoverPreviewName').textContent = p.name || '제목';
   eduUpdateCoverPreview();
-  // 실시간 미리보기 이벤트
-  ['eduCoverColor1','eduCoverColor2','eduCoverAccentColor'].forEach(function(id){
-    document.getElementById(id).oninput = eduUpdateCoverPreview;
-  });
   document.getElementById('eduCoverOverlay').classList.add('show');
 }
 
+function eduPickMarble(color) {
+  document.getElementById('eduCoverMarbleColor').value = color;
+  eduUpdateCoverPreview();
+}
+
 function eduUpdateCoverPreview() {
-  var c1 = document.getElementById('eduCoverColor1').value;
-  var c2 = document.getElementById('eduCoverColor2').value;
+  var mc = document.getElementById('eduCoverMarbleColor').value;
   var ac = document.getElementById('eduCoverAccentColor').value;
-  var prev = document.getElementById('eduCoverPreview');
+  var rect = document.getElementById('eduCoverPreviewRect');
   var label = document.getElementById('eduCoverPreviewLabel');
-  prev.style.background = 'linear-gradient(135deg,'+c1+' 0%,'+c2+' 100%)';
-  label.style.border = '2px solid '+ac;
+  if(rect) rect.setAttribute('fill', mc);
+  if(label) label.style.borderColor = ac;
 }
 
 function eduSaveCover() {
   var planId = document.getElementById('eduCoverPlanId').value;
   if(!planId) { closeOverlay('eduCoverOverlay'); return; }
-  var c1 = document.getElementById('eduCoverColor1').value;
-  var c2 = document.getElementById('eduCoverColor2').value;
+  var mc = document.getElementById('eduCoverMarbleColor').value;
   var ac = document.getElementById('eduCoverAccentColor').value;
-  var bg = 'linear-gradient(135deg,'+c1+' 0%,'+c2+' 100%)';
-  ucol('eduPlans').doc(planId).set({ coverC1:c1, coverC2:c2, coverBg:bg, coverAccent:ac }, {merge:true});
+  ucol('eduPlans').doc(planId).set({ marbleColor:mc, coverAccent:ac }, {merge:true});
   closeOverlay('eduCoverOverlay');
 }
 
