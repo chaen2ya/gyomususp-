@@ -1110,6 +1110,7 @@ function setupListeners() {
     if(appReady) renderEduPlans();
     onDocLoaded();
   }));
+  unsubscribers.push(uref('data/settings').onSnapshot(function(snap) {
     if(snap.exists && snap.data().calSelected) {
       calSelected = snap.data().calSelected;
     }
@@ -2639,7 +2640,7 @@ function eduWeeksChange(n) {
   renderEduDetail();
 }
 
-
+function exportWord(type) {
   var title, bodyHtml, fileName;
 
   function escHtml(s){ return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/\n/g,'<br>'); }
