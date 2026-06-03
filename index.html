@@ -750,12 +750,7 @@ body{background:var(--cover);color:var(--ink);display:flex;flex-direction:column
           <button class="chk-btn-blue" onclick="eduAddCategory()">+ 대분류</button>
           <button class="chk-btn-blue" onclick="eduAddRow()">+ 영역</button>
           <button class="chk-btn-red" onclick="eduDeleteRowModal()">영역 삭제</button>
-          <div style="margin-left:auto;display:flex;gap:4px;align-items:center">
-            <span style="font-size:11px;color:var(--ink-soft)">주차:</span>
-            <button class="chk-btn-gray" onclick="eduWeeksChange(3)" id="eduWk3" style="padding:4px 8px;font-size:11px">3주</button>
-            <button class="chk-btn-gray" onclick="eduWeeksChange(4)" id="eduWk4" style="padding:4px 8px;font-size:11px">4주</button>
-            <button class="chk-btn-gray" onclick="eduWeeksChange(5)" id="eduWk5" style="padding:4px 8px;font-size:11px">5주</button>
-          </div>
+          <button class="chk-btn-gray" onclick="eduChangePeriod()" style="margin-left:auto">📅 기간 변경</button>
         </div>
         <!-- 테이블 -->
         <div class="chk-wrap" id="eduTableWrap">
@@ -2390,16 +2385,24 @@ function renderEduPlans() {
 }
 
 function eduNewPlan() {
-  var name = prompt('교육계획 이름을 입력하세요: (예: 2026년 6월)');
+  var name = prompt('교육계획(단원) 이름을 입력하세요:\n예) 감정, 2026년 6월');
   if(!name||!name.trim()) return;
   var now = new Date();
   var yr = now.getFullYear(), mo = now.getMonth()+1;
-  var m = name.trim().match(/(\d{4})[^\d]+(\d{1,2})/);
-  if(m) { yr = parseInt(m[1]); mo = parseInt(m[2]); }
+  var startStr = prompt('시작 연월 입력 (예: 2026-06):', yr+'-'+(mo<10?'0':'')+mo);
+  if(!startStr) return;
+  var sm = startStr.match(/(\d{4})-(\d{1,2})/);
+  if(!sm){ alert('형식 오류. 예: 2026-06'); return; }
+  var sY=parseInt(sm[1]), sM=parseInt(sm[2]);
+  var endStr = prompt('끝 연월 입력 (예: 2026-06):', sY+'-'+(sM<10?'0':'')+sM);
+  if(!endStr) return;
+  var em = endStr.match(/(\d{4})-(\d{1,2})/);
+  if(!em){ alert('형식 오류. 예: 2026-06'); return; }
+  var eY=parseInt(em[1]), eM=parseInt(em[2]);
   var data = {
-    name: name.trim(), year: yr, month: mo, weeks: 4,
+    name: name.trim(), startYear:sY, startMonth:sM, endYear:eY, endMonth:eM,
     rows: JSON.parse(JSON.stringify(EDU_DEFAULT_ROWS)),
-    metas: {}, cells: {},
+    metas:{}, cells:{},
     createdAt: new Date().toISOString(), updatedAt: new Date().toISOString()
   };
   ucol('eduPlans').add(data).then(function(ref){ eduOpenPlan(ref.id); });
@@ -2410,10 +2413,19 @@ function eduOpenPlan(id) {
   if(!p) return;
   curEduId = id;
   curEduData = JSON.parse(JSON.stringify(p));
-  if(!curEduData.metas) curEduData.metas = {};
-  if(!curEduData.cells) curEduData.cells = {};
-  if(!curEduData.rows) curEduData.rows = JSON.parse(JSON.stringify(EDU_DEFAULT_ROWS));
-  if(!curEduData.year) { var now=new Date(); curEduData.year=now.getFullYear(); curEduData.month=now.getMonth()+1; }
+  if(!curEduData.metas) curEduData.metas={};
+  if(!curEduData.cells) curEduData.cells={};
+  if(!curEduData.rows) curEduData.rows=JSON.parse(JSON.stringify(EDU_DEFAULT_ROWS));
+  // 구 데이터 호환
+  if(!curEduData.startYear && curEduData.year){
+    curEduData.startYear=curEduData.year; curEduData.startMonth=curEduData.month||1;
+    curEduData.endYear=curEduData.year;   curEduData.endMonth=curEduData.month||1;
+  }
+  if(!curEduData.startYear){
+    var now=new Date();
+    curEduData.startYear=now.getFullYear(); curEduData.startMonth=now.getMonth()+1;
+    curEduData.endYear=curEduData.startYear; curEduData.endMonth=curEduData.startMonth;
+  }
   document.getElementById('eduDetailTitle').textContent = p.name;
   document.getElementById('eduListView').style.display = 'none';
   document.getElementById('eduDetailView').style.display = '';
@@ -2422,75 +2434,114 @@ function eduOpenPlan(id) {
 }
 
 function eduGoBack() {
-  curEduId = null; curEduData = null;
-  document.getElementById('eduDetailView').style.display = 'none';
-  document.getElementById('eduListView').style.display = '';
+  curEduId=null; curEduData=null;
+  document.getElementById('eduDetailView').style.display='none';
+  document.getElementById('eduListView').style.display='';
 }
 
 function eduRenamePlan() {
   if(!curEduId) return;
-  var name = prompt('새 이름:', curEduData.name||'');
+  var name=prompt('새 이름:',curEduData.name||'');
   if(!name||!name.trim()) return;
-  curEduData.name = name.trim();
-  document.getElementById('eduDetailTitle').textContent = name.trim();
+  curEduData.name=name.trim();
+  document.getElementById('eduDetailTitle').textContent=name.trim();
   saveEduPlan();
 }
 
+function eduChangePeriod() {
+  if(!curEduData) return;
+  var startStr=prompt('시작 연월 (예: 2026-06):',
+    curEduData.startYear+'-'+(curEduData.startMonth<10?'0':'')+curEduData.startMonth);
+  if(!startStr) return;
+  var sm=startStr.match(/(\d{4})-(\d{1,2})/);
+  if(!sm){ alert('형식 오류 (예: 2026-06)'); return; }
+  var endStr=prompt('끝 연월 (예: 2026-07):',
+    curEduData.endYear+'-'+(curEduData.endMonth<10?'0':'')+curEduData.endMonth);
+  if(!endStr) return;
+  var em=endStr.match(/(\d{4})-(\d{1,2})/);
+  if(!em){ alert('형식 오류 (예: 2026-07)'); return; }
+  curEduData.startYear=parseInt(sm[1]); curEduData.startMonth=parseInt(sm[2]);
+  curEduData.endYear=parseInt(em[1]);   curEduData.endMonth=parseInt(em[2]);
+  saveEduPlan(); renderEduDetail();
+}
+
 function eduDeletePlan(id) {
-  var p = eduPlans.find(function(x){ return x.id===id; });
+  var p=eduPlans.find(function(x){ return x.id===id; });
   if(!confirm((p?'['+p.name+'] ':'')+'교육계획을 삭제하시겠습니까?')) return;
   ucol('eduPlans').doc(id).delete();
 }
 
-/* ISO 8601: 목요일이 포함된 주 = 1주차 */
-function eduGetWeeks(year, month) {
-  var weeks = [], weekMap = {};
-  var daysInMonth = new Date(year, month, 0).getDate();
-  for(var d=1; d<=daysInMonth; d++) {
-    var dt = new Date(year, month-1, d);
-    var dow = dt.getDay(); // 0=일,6=토
-    if(dow===0||dow===6) continue;
-    var dayOffset = (dow===0?6:dow-1);
-    var monOfWeek = new Date(dt.getTime()-dayOffset*86400000);
-    var thuOfWeek = new Date(monOfWeek.getTime()+3*86400000);
-    if(thuOfWeek.getFullYear()!==year||thuOfWeek.getMonth()+1!==month) continue;
-    var weekKey = thuOfWeek.toISOString().slice(0,10);
-    if(!weekMap[weekKey]) { weekMap[weekKey]={thu:thuOfWeek,dates:[]}; weeks.push(weekMap[weekKey]); }
-    weekMap[weekKey].dates.push({date:d, dow:dow});
+/* 범위 내 모든 ISO 주차 반환 */
+function eduGetWeeksInRange(sY,sM,eY,eM) {
+  var weeks=[],weekMap={};
+  var y=sY,m=sM;
+  while(y<eY||(y===eY&&m<=eM)){
+    var dim=new Date(y,m,0).getDate();
+    for(var d=1;d<=dim;d++){
+      var dt=new Date(y,m-1,d);
+      var dow=dt.getDay();
+      if(dow===0||dow===6) continue;
+      var off=(dow===0?6:dow-1);
+      var mon=new Date(dt.getTime()-off*86400000);
+      var thu=new Date(mon.getTime()+3*86400000);
+      var tY=thu.getFullYear(),tM=thu.getMonth()+1;
+      if(tY<sY||(tY===sY&&tM<sM)) continue;
+      if(tY>eY||(tY===eY&&tM>eM)) continue;
+      var wk=thu.toISOString().slice(0,10);
+      if(!weekMap[wk]){weekMap[wk]={thu:thu,thuYear:tY,thuMonth:tM,dates:[]};weeks.push(weekMap[wk]);}
+      var ds=y+'-'+(m<10?'0':'')+m+'-'+(d<10?'0':'')+d;
+      weekMap[wk].dates.push({date:d,dow:dow,year:y,month:m,dateStr:ds});
+    }
+    m++; if(m>12){m=1;y++;}
   }
-  weeks.sort(function(a,b){ return a.thu-b.thu; });
-  weeks.forEach(function(w){ w.dates.sort(function(a,b){ return a.date-b.date; }); });
+  weeks.sort(function(a,b){return a.thu-b.thu;});
+  weeks.forEach(function(w){w.dates.sort(function(a,b){return a.dateStr.localeCompare(b.dateStr);});});
   return weeks;
 }
 
 function renderEduDetail() {
   renderEduTable();
-  [3,4,5].forEach(function(n){
-    var btn=document.getElementById('eduWk'+n);
-    if(btn){ btn.className=(curEduData.weeks===n)?'chk-btn-blue':'chk-btn-gray'; btn.style.padding='4px 8px'; btn.style.fontSize='11px'; }
-  });
 }
 
 function renderEduTable() {
   var tbl=document.getElementById('eduTable');
   if(!tbl||!curEduData) return;
   var rows=curEduData.rows||[];
-  var maxWk=curEduData.weeks||4;
-  var year=curEduData.year||new Date().getFullYear();
-  var month=curEduData.month||new Date().getMonth()+1;
-  var allWeeks=eduGetWeeks(year,month);
-  var weeks=allWeeks.slice(0,maxWk);
-  var COL_CAT=54,COL_ROW=52,COL_DAY=48;
-  var html='<thead>';
-  html+='<tr>';
-  html+='<th rowspan="3" style="width:'+COL_CAT+'px;position:sticky;left:0;z-index:3;background:#16213e;font-size:9px;min-width:'+COL_CAT+'px">대분류</th>';
-  html+='<th rowspan="3" style="width:'+COL_ROW+'px;position:sticky;left:'+COL_CAT+'px;z-index:3;background:#1c2340;font-size:9px;min-width:'+COL_ROW+'px">영역</th>';
-  weeks.forEach(function(w,wi){ html+='<th colspan="'+w.dates.length+'" style="background:#1c2340;color:#f0e6c8;font-size:10px;border:1px solid #2d3a5e">'+(wi+1)+'주</th>'; });
-  html+='</tr><tr>';
-  weeks.forEach(function(w){ w.dates.forEach(function(d){ html+='<th style="width:'+COL_DAY+'px;font-size:9px;background:#1c2340;color:#c8d4e8;font-weight:400">'+d.date+'</th>'; }); });
-  html+='</tr><tr>';
+  var sY=curEduData.startYear,sM=curEduData.startMonth;
+  var eY=curEduData.endYear,  eM=curEduData.endMonth;
+  var weeks=eduGetWeeksInRange(sY,sM,eY,eM);
+  var CAT=54,ROW=52,DAY=46;
+  var BW='3px solid #4a5568', BN='1px solid #dde2ea';
   var dowName=['','월','화','수','목','금'];
-  weeks.forEach(function(w){ w.dates.forEach(function(d){ html+='<th style="width:'+COL_DAY+'px;font-size:9px;background:#16213e;color:#a0b0c8;font-weight:400">'+dowName[d.dow]+'</th>'; }); });
+
+  var html='<thead><tr>';
+  html+='<th rowspan="3" style="width:'+CAT+'px;position:sticky;left:0;z-index:3;background:#16213e;font-size:9px;min-width:'+CAT+'px">대분류</th>';
+  html+='<th rowspan="3" style="width:'+ROW+'px;position:sticky;left:'+CAT+'px;z-index:3;background:#1c2340;font-size:9px;min-width:'+ROW+'px">영역</th>';
+  weeks.forEach(function(w,wi){
+    var isLast=(wi===weeks.length-1);
+    var wNumInMon=weeks.slice(0,wi+1).filter(function(x){return x.thuMonth===w.thuMonth&&x.thuYear===w.thuYear;}).length;
+    var label=w.thuMonth+'월 '+wNumInMon+'주';
+    html+='<th colspan="'+w.dates.length+'" style="background:#1c2340;color:#f0e6c8;font-size:10px;'
+      +'border-left:'+BW+';border-top:'+BN+';border-bottom:'+BN+';border-right:'+(isLast?BW:BN)+'">'+label+'</th>';
+  });
+  html+='</tr><tr>';
+  weeks.forEach(function(w,wi){
+    var isLast=(wi===weeks.length-1);
+    w.dates.forEach(function(d,di){
+      var isLC=(di===w.dates.length-1);
+      html+='<th style="width:'+DAY+'px;font-size:9px;background:#1c2340;color:#c8d4e8;font-weight:400;'
+        +'border-left:'+(di===0?BW:BN)+';border-right:'+(isLC?(isLast?BW:BW):BN)+'">'+d.date+'</th>';
+    });
+  });
+  html+='</tr><tr>';
+  weeks.forEach(function(w,wi){
+    var isLast=(wi===weeks.length-1);
+    w.dates.forEach(function(d,di){
+      var isLC=(di===w.dates.length-1);
+      html+='<th style="width:'+DAY+'px;font-size:9px;background:#16213e;color:#a0b0c8;font-weight:400;'
+        +'border-left:'+(di===0?BW:BN)+';border-right:'+(isLC?(isLast?BW:BW):BN)+'">'+dowName[d.dow]+'</th>';
+    });
+  });
   html+='</tr></thead><tbody>';
 
   var metaRows=[
@@ -2501,28 +2552,37 @@ function renderEduTable() {
   ];
   metaRows.forEach(function(mr){
     html+='<tr>';
-    html+='<td colspan="2" style="background:'+mr.bg+';font-size:10px;font-weight:700;color:'+mr.color+';text-align:center;border:1px solid #dde2ea;padding:3px 4px;position:sticky;left:0;z-index:2;min-width:'+(COL_CAT+COL_ROW)+'px">'+mr.label+'</td>';
+    html+='<td colspan="2" style="background:'+mr.bg+';font-size:10px;font-weight:700;color:'+mr.color
+      +';text-align:center;border:'+BN+';padding:3px 4px;position:sticky;left:0;z-index:2;min-width:'+(CAT+ROW)+'px">'+mr.label+'</td>';
     weeks.forEach(function(w,wi){
+      var isLast=(wi===weeks.length-1);
+      var wKey='w_'+w.thu.toISOString().slice(0,10);
       if(mr.key==='topic'){
-        var val=(curEduData.metas['w'+wi]||{})[mr.key]||'';
-        html+='<td colspan="'+w.dates.length+'" style="background:'+mr.bg+';border:1px solid #dde2ea;padding:3px 5px;cursor:pointer;text-align:center;vertical-align:middle" onclick="eduMetaClick('+wi+',\'topic\')">'
+        var val=(curEduData.metas[wKey]||{}).topic||'';
+        html+='<td colspan="'+w.dates.length+'" style="background:'+mr.bg
+          +';border-left:'+BW+';border-top:'+BN+';border-bottom:'+BN+';border-right:'+(isLast?BW:BN)
+          +';padding:3px 5px;cursor:pointer;text-align:center;vertical-align:middle" onclick="eduMetaClick(\''+wKey+'\',\'topic\')">'
           +'<div style="font-size:11px;color:'+mr.color+';min-height:18px;font-weight:600">'+(val?esc(val):'<span style="color:#ccc;font-size:9px">탭하여입력</span>')+'</div></td>';
       } else {
-        w.dates.forEach(function(d){
-          var dateStr=year+'-'+String(month).padStart(2,'0')+'-'+String(d.date).padStart(2,'0');
-          var val=(curEduData.cells||{})[mr.key+'_'+dateStr]||'';
+        w.dates.forEach(function(d,di){
+          var isLC=(di===w.dates.length-1);
+          var val=(curEduData.cells||{})[mr.key+'_'+d.dateStr]||'';
           var calEvt='';
-          if(mr.key==='event' && typeof calEvents!=='undefined'){
+          if(mr.key==='event'&&typeof calEvents!=='undefined'){
             var matched=calEvents.filter(function(ev){
               if(!ev._calName||ev._calName.indexOf('학사일정')<0) return false;
               var s=(ev.start.date||ev.start.dateTime||'').slice(0,10);
               var e=(ev.end.date||ev.end.dateTime||'').slice(0,10);
-              if(ev.start.date){ var ed=new Date(e); ed.setDate(ed.getDate()-1); return dateStr>=s&&dateStr<=ed.toISOString().slice(0,10); }
-              return s===dateStr;
+              if(ev.start.date){var ed=new Date(e);ed.setDate(ed.getDate()-1);return d.dateStr>=s&&d.dateStr<=ed.toISOString().slice(0,10);}
+              return s===d.dateStr;
             });
-            calEvt=matched.map(function(ev){ return ev.summary||''; }).join(', ');
+            calEvt=matched.map(function(ev){return ev.summary||'';}).join(', ');
           }
-          html+='<td style="background:'+mr.bg+';border:1px solid #dde2ea;padding:2px 3px;cursor:pointer;vertical-align:top;width:'+COL_DAY+'px" onclick="eduMetaDateClick(\''+mr.key+'\',\''+dateStr+'\')">'
+          html+='<td style="background:'+mr.bg
+            +';border-top:'+BN+';border-bottom:'+BN
+            +';border-left:'+(di===0?BW:BN)
+            +';border-right:'+(isLC?(isLast?BW:BW):BN)
+            +';padding:2px 3px;cursor:pointer;vertical-align:top;width:'+DAY+'px" onclick="eduMetaDateClick(\''+mr.key+'\',\''+d.dateStr+'\')">'
             +'<div style="font-size:9px;color:'+mr.color+';min-height:18px;line-height:1.3;word-break:break-all">'
             +(calEvt&&!val?'<span style="color:#c08000">'+esc(calEvt)+'</span>':'')
             +(val?esc(val):'')
@@ -2534,22 +2594,30 @@ function renderEduTable() {
     html+='</tr>';
   });
 
-  var catMap={},catRendered={};
-  rows.forEach(function(r){ if(!catMap[r.cat]) catMap[r.cat]={count:0}; catMap[r.cat].count++; });
+  var catMap={},catR={};
+  rows.forEach(function(r){if(!catMap[r.cat])catMap[r.cat]={count:0};catMap[r.cat].count++;});
   rows.forEach(function(r){
     html+='<tr>';
-    if(!catRendered[r.cat]){
-      catRendered[r.cat]=true;
-      html+='<td rowspan="'+catMap[r.cat].count+'" style="background:#f0f2f5;font-size:10px;font-weight:700;color:#2c3e50;text-align:center;vertical-align:middle;border:1px solid #c0c8d8;border-right:2px solid #c0c8d8;padding:3px 2px;position:sticky;left:0;z-index:1;word-break:keep-all;line-height:1.3;min-width:'+COL_CAT+'px">'+esc(r.cat)+'</td>';
+    if(!catR[r.cat]){
+      catR[r.cat]=true;
+      html+='<td rowspan="'+catMap[r.cat].count+'" style="background:#f0f2f5;font-size:10px;font-weight:700;color:#2c3e50;'
+        +'text-align:center;vertical-align:middle;border:1px solid #c0c8d8;border-right:2px solid #c0c8d8;'
+        +'padding:3px 2px;position:sticky;left:0;z-index:1;word-break:keep-all;line-height:1.3;min-width:'+CAT+'px">'+esc(r.cat)+'</td>';
     }
-    html+='<td style="background:#f5f7fa;font-size:11px;font-weight:600;color:#2c3e50;text-align:center;vertical-align:middle;border:1px solid #c0c8d8;border-right:2px solid #c0c8d8;padding:3px 4px;position:sticky;left:'+COL_CAT+'px;z-index:1;word-break:keep-all;line-height:1.3;min-width:'+COL_ROW+'px">'+esc(r.label)+'</td>';
-    weeks.forEach(function(w){
-      w.dates.forEach(function(d){
-        var dateStr=year+'-'+String(month).padStart(2,'0')+'-'+String(d.date).padStart(2,'0');
-        var key='row_'+r.label+'_'+dateStr;
+    html+='<td style="background:#f5f7fa;font-size:11px;font-weight:600;color:#2c3e50;'
+      +'text-align:center;vertical-align:middle;border:1px solid #c0c8d8;border-right:2px solid #c0c8d8;'
+      +'padding:3px 4px;position:sticky;left:'+CAT+'px;z-index:1;word-break:keep-all;line-height:1.3;min-width:'+ROW+'px">'+esc(r.label)+'</td>';
+    weeks.forEach(function(w,wi){
+      var isLast=(wi===weeks.length-1);
+      w.dates.forEach(function(d,di){
+        var isLC=(di===w.dates.length-1);
+        var key='row_'+r.label+'_'+d.dateStr;
         var val=(curEduData.cells||{})[key]||'';
-        html+='<td style="border:1px solid #dde2ea;padding:2px 3px;vertical-align:top;cursor:pointer;width:'+COL_DAY+'px" onclick="eduCellClick(\''+esc(key)+'\',\''+esc(r.label)+'\',\''+dateStr+'\')">'
-          '<div style="font-size:10px;color:#2c3e50;line-height:1.35;white-space:pre-wrap;word-break:break-all;min-height:28px">'+(val?esc(val):'')+'</div></td>';
+        html+='<td style="border-top:'+BN+';border-bottom:'+BN
+          +';border-left:'+(di===0?BW:BN)
+          +';border-right:'+(isLC?(isLast?BW:BW):BN)
+          +';padding:2px 3px;vertical-align:top;cursor:pointer;width:'+DAY+'px" onclick="eduCellClick(\''+esc(key)+'\',\''+esc(r.label)+'\',\''+d.dateStr+'\')">'
+          +'<div style="font-size:10px;color:#2c3e50;line-height:1.35;white-space:pre-wrap;word-break:break-all;min-height:28px">'+(val?esc(val):'')+'</div></td>';
       });
     });
     html+='</tr>';
@@ -2557,24 +2625,24 @@ function renderEduTable() {
   tbl.innerHTML=html+'</tbody>';
 }
 
-function eduMetaClick(wi,field){
-  if(!curEduData.metas) curEduData.metas={};
-  if(!curEduData.metas['w'+wi]) curEduData.metas['w'+wi]={};
-  var cur=curEduData.metas['w'+wi][field]||'';
-  var val=prompt((wi+1)+'주차 소주제 입력:',cur);
+function eduMetaClick(wKey,field){
+  if(!curEduData.metas)curEduData.metas={};
+  if(!curEduData.metas[wKey])curEduData.metas[wKey]={};
+  var cur=curEduData.metas[wKey][field]||'';
+  var val=prompt('소주제 입력:',cur);
   if(val===null) return;
-  curEduData.metas['w'+wi][field]=val.trim();
+  curEduData.metas[wKey][field]=val.trim();
   saveEduPlan(); renderEduTable();
 }
 
 function eduMetaDateClick(field,dateStr){
-  if(!curEduData.cells) curEduData.cells={};
+  if(!curEduData.cells)curEduData.cells={};
   var labels={event:'행사',work:'수업',task:'업무'};
   var cur=curEduData.cells[field+'_'+dateStr]||'';
   var val=prompt(dateStr+' '+labels[field]+' 입력:',cur);
   if(val===null) return;
   var k=field+'_'+dateStr;
-  if(val.trim()) curEduData.cells[k]=val.trim(); else delete curEduData.cells[k];
+  if(val.trim())curEduData.cells[k]=val.trim(); else delete curEduData.cells[k];
   saveEduPlan(); renderEduTable();
 }
 
@@ -2583,14 +2651,14 @@ function eduCellClick(key,label,dateStr){
   document.getElementById('eduCellLabel').textContent=dateStr+' · '+label;
   document.getElementById('eduCellText').value=(curEduData.cells||{})[key]||'';
   document.getElementById('eduCellOverlay').classList.add('show');
-  setTimeout(function(){ document.getElementById('eduCellText').focus(); },100);
+  setTimeout(function(){document.getElementById('eduCellText').focus();},100);
 }
 
 function eduSaveCell(){
   var key=document.getElementById('eduCellKey').value;
   var val=document.getElementById('eduCellText').value.trim();
-  if(!curEduData.cells) curEduData.cells={};
-  if(val) curEduData.cells[key]=val; else delete curEduData.cells[key];
+  if(!curEduData.cells)curEduData.cells={};
+  if(val)curEduData.cells[key]=val; else delete curEduData.cells[key];
   closeOverlay('eduCellOverlay');
   saveEduPlan(); renderEduTable();
 }
@@ -2604,41 +2672,37 @@ function eduAddCategory(){
 
 function eduAddRow(){
   var cats=[];
-  (curEduData.rows||[]).forEach(function(r){ if(cats.indexOf(r.cat)<0) cats.push(r.cat); });
-  var catStr=cats.map(function(c,i){ return (i+1)+'. '+c; }).join('\n');
+  (curEduData.rows||[]).forEach(function(r){if(cats.indexOf(r.cat)<0)cats.push(r.cat);});
+  var catStr=cats.map(function(c,i){return (i+1)+'. '+c;}).join('\n');
   var catIdx=prompt('영역을 추가할 대분류 번호:\n'+catStr+'\n\n새 대분류는 0 입력:');
   if(catIdx===null) return;
   var cat;
-  if(catIdx.trim()==='0'){ cat=prompt('새 대분류 이름:'); if(!cat||!cat.trim()) return; cat=cat.trim(); }
-  else { var idx=parseInt(catIdx)-1; if(isNaN(idx)||idx<0||idx>=cats.length){ alert('올바른 번호를 입력해주세요.'); return; } cat=cats[idx]; }
-  var label=prompt('새 영역 이름:'); if(!label||!label.trim()) return;
+  if(catIdx.trim()==='0'){cat=prompt('새 대분류 이름:');if(!cat||!cat.trim())return;cat=cat.trim();}
+  else{var idx=parseInt(catIdx)-1;if(isNaN(idx)||idx<0||idx>=cats.length){alert('올바른 번호를 입력해주세요.');return;}cat=cats[idx];}
+  var label=prompt('새 영역 이름:');if(!label||!label.trim())return;
   var lastIdx=-1;
-  (curEduData.rows||[]).forEach(function(r,i){ if(r.cat===cat) lastIdx=i; });
-  if(lastIdx>=0) curEduData.rows.splice(lastIdx+1,0,{cat:cat,label:label.trim()});
+  (curEduData.rows||[]).forEach(function(r,i){if(r.cat===cat)lastIdx=i;});
+  if(lastIdx>=0)curEduData.rows.splice(lastIdx+1,0,{cat:cat,label:label.trim()});
   else curEduData.rows.push({cat:cat,label:label.trim()});
   saveEduPlan(); renderEduTable();
 }
 
 function eduDeleteRowModal(){
   var rows=curEduData.rows||[];
-  if(!rows.length){ alert('삭제할 영역이 없습니다.'); return; }
-  var list=rows.map(function(r,i){ return (i+1)+'. ['+r.cat+'] '+r.label; }).join('\n');
+  if(!rows.length){alert('삭제할 영역이 없습니다.');return;}
+  var list=rows.map(function(r,i){return (i+1)+'. ['+r.cat+'] '+r.label;}).join('\n');
   var input=prompt('삭제할 영역 번호 (쉼표로 여러 개):\n'+list);
   if(!input) return;
-  var indices=input.split(',').map(function(s){ return parseInt(s.trim())-1; }).filter(function(i){ return !isNaN(i)&&i>=0&&i<rows.length; });
+  var indices=input.split(',').map(function(s){return parseInt(s.trim())-1;}).filter(function(i){return !isNaN(i)&&i>=0&&i<rows.length;});
   if(!indices.length) return;
-  var names=indices.map(function(i){ return rows[i].label; }).join(', ');
+  var names=indices.map(function(i){return rows[i].label;}).join(', ');
   if(!confirm('['+names+'] 삭제하시겠습니까?')) return;
-  indices.forEach(function(i){ var label=rows[i].label; Object.keys(curEduData.cells||{}).forEach(function(k){ if(k.indexOf('row_'+label+'_')===0) delete curEduData.cells[k]; }); });
-  curEduData.rows=rows.filter(function(_,i){ return indices.indexOf(i)<0; });
+  indices.forEach(function(i){var label=rows[i].label;Object.keys(curEduData.cells||{}).forEach(function(k){if(k.indexOf('row_'+label+'_')===0)delete curEduData.cells[k];});});
+  curEduData.rows=rows.filter(function(_,i){return indices.indexOf(i)<0;});
   saveEduPlan(); renderEduTable();
 }
 
-function eduWeeksChange(n){
-  if(!curEduData) return;
-  curEduData.weeks=n;
-  saveEduPlan(); renderEduDetail();
-}
+function eduWeeksChange(n){ /* 기간 방식으로 대체됨 - 하위 호환 유지 */ }
 
 function exportWord(type) {
   var title, bodyHtml, fileName;
