@@ -1013,7 +1013,7 @@ function setupListeners() {
 
   unsubscribers.push(uref('data/todos').onSnapshot(function(snap) {
     todos = snap.exists ? (snap.data().items || []) : [];
-    if(appReady) renderTodos();
+    if(appReady) { renderTodos(); if(calAccessToken) calRender(); }
     onDocLoaded();
   }));
   unsubscribers.push(uref('data/staff').onSnapshot(function(snap) {
@@ -1229,6 +1229,9 @@ function calRender() {
         return s === dateStr;
       });
 
+      // 미완료 할일 중 해당 날짜인 것
+      var dayTodos = todos.filter(function(t){ return !t.done && t.dt === dateStr; });
+
       html += '<td class="'+cls+'" onclick="calDayClick(event,\''+dateStr+'\')">';
       html += '<div class="cal-day-num">'+dayNum+'</div>';
       var maxShow = dayEvts.length;
@@ -1238,6 +1241,11 @@ function calRender() {
         html += '<div class="cal-evt" style="background:'+color+'" '+
           'onclick="event.stopPropagation();calEvtClick(event,\''+esc(ev.id||'')+'\',\''+esc(ev._calId||'')+'\',\''+esc(ev.summary||'')+'\',\''+esc(ev._calName||'')+'\',\''+esc(ev.start&&(ev.start.date||ev.start.dateTime)||'')+'\',\''+esc(ev.end&&(ev.end.date||ev.end.dateTime)||'')+'\',\''+color+'\')" '+
           '>'+title+'</div>';
+      });
+      dayTodos.forEach(function(t) {
+        html += '<div class="cal-evt cal-evt-todo" style="background:#6b7a8a" '+
+          'onclick="event.stopPropagation();calTodoClick(event,'+t.id+')"'+
+          '>✅ '+esc(t.txt)+'</div>';
       });
       if(dayEvts.length > maxShow) {
         html += '<div class="cal-evt-more">+' + (dayEvts.length-maxShow) + '개</div>';
@@ -1395,7 +1403,26 @@ function calDeleteEvent(evtId, calId) {
     else r.json().then(function(d){ alert('삭제 실패: '+(d.error&&d.error.message||r.status)); });
   });
 }
-function closeCalPopup() { document.getElementById('calEvtPopup').classList.remove('show'); }
+function calTodoClick(e, id) {
+  var t = todos.find(function(x){ return x.id===id; });
+  if(!t) return;
+  var popup = document.getElementById('calEvtPopup');
+  document.getElementById('calEvtTitle').textContent = t.txt;
+  document.getElementById('calEvtTitle').style.color = '#6b7a8a';
+  document.getElementById('calEvtTime').textContent = '📅 ' + (t.dt || '');
+  document.getElementById('calEvtCal').textContent = '✅ 할일목록';
+  document.getElementById('calEvtEditBtn').onclick = function(){ closeCalPopup(); goTab('todo', document.querySelector('.nav-btn:nth-child(2)')); };
+  document.getElementById('calEvtDelBtn').style.display = 'none';
+  var rect = e.target.getBoundingClientRect();
+  popup.style.left = Math.min(rect.left, window.innerWidth-290) + 'px';
+  popup.style.top  = (rect.bottom+4) + 'px';
+  popup.classList.add('show');
+}
+function closeCalPopup() {
+  var popup = document.getElementById('calEvtPopup');
+  popup.classList.remove('show');
+  document.getElementById('calEvtDelBtn').style.display = '';
+}
 document.addEventListener('click', function(e){
   var p = document.getElementById('calEvtPopup');
   if(p && p.classList.contains('show') && !p.contains(e.target)) closeCalPopup();
