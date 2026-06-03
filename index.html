@@ -497,7 +497,57 @@ body{background:var(--cover);color:var(--ink);display:flex;flex-direction:column
 /* 구 스타일 호환 */
 .note-acts{display:flex;gap:6px;margin-top:8px}
 
-/* ── PARENT CONSULT ── */
+/* ── 교육계획 표지 카드 ── */
+.edu-cover-card{
+  position:relative;border-radius:12px;
+  aspect-ratio:3/4;cursor:pointer;overflow:hidden;
+  display:flex;align-items:center;justify-content:center;
+  box-shadow:3px 4px 14px rgba(0,0,0,0.25);
+  transition:transform .15s,box-shadow .15s;
+}
+.edu-cover-card:active{transform:scale(.97);box-shadow:1px 2px 8px rgba(0,0,0,0.2)}
+.edu-cover-label{
+  background:rgba(255,255,255,0.95);
+  border:2px solid #222;border-radius:8px;
+  padding:14px 18px;text-align:center;
+  min-width:70%;max-width:85%;
+  box-shadow:2px 3px 8px rgba(0,0,0,0.3);
+  position:relative;z-index:1;
+}
+.edu-cover-label::before{
+  content:'';position:absolute;inset:4px;
+  border:1px solid #555;border-radius:5px;pointer-events:none;
+}
+.edu-cover-title{
+  font-family:'Jua',sans-serif;font-size:22px;
+  color:#111;font-weight:700;line-height:1.2;
+  margin-bottom:8px;
+}
+.edu-cover-period{
+  font-size:12px;color:#444;font-weight:500;
+  border-top:1px solid #ccc;padding-top:6px;margin-top:4px;
+}
+.edu-cover-btn{
+  position:absolute;top:7px;right:30px;
+  background:rgba(0,0,0,0.4);border:none;border-radius:6px;
+  padding:3px 6px;font-size:13px;cursor:pointer;
+  display:none;color:#fff;
+}
+.edu-cover-del{
+  position:absolute;top:7px;right:7px;
+  background:rgba(0,0,0,0.4);border:none;border-radius:6px;
+  padding:3px 6px;font-size:13px;cursor:pointer;
+  display:none;color:#fff;
+}
+.edu-cover-card:hover .edu-cover-btn,
+.edu-cover-card:hover .edu-cover-del{ display:block; }
+
+/* ── 교육계획 표지 선택 모달 ── */
+.edu-cover-grid{
+  display:grid;grid-template-columns:repeat(4,1fr);gap:8px;
+}
+@media(max-width:400px){.edu-cover-grid{grid-template-columns:repeat(2,1fr)}}
+
 .pc-add-btn{width:100%;padding:11px;background:var(--cover);color:#fff;border:none;
   border-radius:8px;font-size:14px;font-family:'MyHandwriting','Noto Sans KR',sans-serif;cursor:pointer;margin-bottom:14px}
 .pc-card{background:#fff;border-radius:8px;padding:12px;margin-bottom:12px;
@@ -935,6 +985,19 @@ body{background:var(--cover);color:var(--ink);display:flex;flex-direction:column
     <div class="modal-btns">
       <button class="btn-cancel" onclick="closeOverlay('noteOverlay')">취소</button>
       <button class="btn-save" onclick="saveNote()">저장</button>
+    </div>
+  </div>
+</div>
+
+<!-- 교육계획 표지 선택 모달 -->
+<div class="overlay" id="eduCoverOverlay">
+  <div class="modal">
+    <div class="modal-title">🎨 표지 디자인 선택</div>
+    <input type="hidden" id="eduCoverPlanId">
+    <div class="edu-cover-grid" id="eduCoverGrid"></div>
+    <div class="modal-btns" style="margin-top:16px">
+      <button class="btn-cancel" onclick="closeOverlay('eduCoverOverlay')">취소</button>
+      <button class="btn-save" onclick="eduSaveCover()">적용</button>
     </div>
   </div>
 </div>
@@ -2359,6 +2422,21 @@ function saveEduPlan() {
   ucol('eduPlans').doc(curEduId).set(curEduData, {merge:true});
 }
 
+var EDU_COVERS = [
+  {id:'flower', label:'🌸 플라워', bg:'linear-gradient(135deg,#1a1f3a 0%,#2d1b4e 50%,#1a2a4a 100%)', accent:'#e8a0c8'},
+  {id:'green',  label:'🌿 그린',   bg:'linear-gradient(135deg,#1a3a2a 0%,#2d5a3d 50%,#1a4a2a 100%)', accent:'#a8e0b8'},
+  {id:'blue',   label:'🌊 블루',   bg:'linear-gradient(135deg,#0d2a4a 0%,#1a4a7a 50%,#0d3a5a 100%)', accent:'#90c8f0'},
+  {id:'sunset', label:'🌅 선셋',   bg:'linear-gradient(135deg,#4a1a1a 0%,#7a3a1a 50%,#4a2a0a 100%)', accent:'#f0b080'},
+  {id:'night',  label:'🌙 나이트', bg:'linear-gradient(135deg,#0a0a1a 0%,#1a1a3a 50%,#0a0a2a 100%)', accent:'#c0b0f0'},
+  {id:'rose',   label:'🌹 로즈',   bg:'linear-gradient(135deg,#3a1a2a 0%,#6a2a4a 50%,#3a1a3a 100%)', accent:'#f0a0c0'},
+  {id:'autumn', label:'🍂 가을',   bg:'linear-gradient(135deg,#3a2a0a 0%,#6a4a1a 50%,#4a2a0a 100%)', accent:'#f0c878'},
+  {id:'mint',   label:'🍃 민트',   bg:'linear-gradient(135deg,#0a2a2a 0%,#1a4a4a 50%,#0a3a3a 100%)', accent:'#80e0d0'},
+];
+
+function eduCoverById(id) {
+  return EDU_COVERS.find(function(c){ return c.id===id; }) || EDU_COVERS[0];
+}
+
 function renderEduPlans() {
   var grid = document.getElementById('eduPlanGrid');
   if(!grid) return;
@@ -2368,20 +2446,74 @@ function renderEduPlans() {
   }
   var html = '<div class="chk-sheet-grid">';
   eduPlans.forEach(function(p) {
-    html += '<div class="chk-sheet-card" onclick="eduOpenPlan(\''+p.id+'\')">' +
-      '<div class="chk-sheet-card-tab" style="background:var(--green)"></div>' +
-      '<div class="chk-sheet-card-inner">' +
-        '<div class="chk-sheet-card-name">'+esc(p.name)+'</div>' +
-        '<div style="font-size:10px;color:var(--ink-soft);margin-top:6px;line-height:1.7">' +
-          (p.weeks||4)+'주 · '+(p.rows?p.rows.length:0)+'개 영역' +
-        '</div>' +
-        '<div class="chk-sheet-card-meta">'+(p.updatedAt?p.updatedAt.slice(0,10):'')+'</div>' +
-        '<button class="chk-sheet-card-del" onclick="event.stopPropagation();eduDeletePlan(\''+p.id+'\')">🗑️</button>' +
-      '</div>' +
-    '</div>';
+    var cover = eduCoverById(p.coverId||'flower');
+    var bg = p.coverBg || cover.bg;
+    var accent = p.coverAccent || cover.accent;
+    var periodStr = '';
+    if(p.startYear) {
+      periodStr = (String(p.startYear).slice(2))+'.'+String(p.startMonth).padStart(2,'0');
+      if(p.endYear && (p.endYear!==p.startYear || p.endMonth!==p.startMonth))
+        periodStr += '~'+(String(p.endYear).slice(2))+'.'+String(p.endMonth).padStart(2,'0');
+    }
+    html += '<div class="edu-cover-card" onclick="eduOpenPlan(\''+p.id+'\')" style="background:'+bg+'">'
+      // 장식 원들
+      +'<div style="position:absolute;width:120px;height:120px;border-radius:50%;background:rgba(255,255,255,0.04);top:-30px;right:-30px;pointer-events:none"></div>'
+      +'<div style="position:absolute;width:80px;height:80px;border-radius:50%;background:rgba(255,255,255,0.03);bottom:20px;left:-20px;pointer-events:none"></div>'
+      // 라벨 스티커
+      +'<div class="edu-cover-label">'
+        +'<div class="edu-cover-title">'+esc(p.name)+'</div>'
+        +(periodStr?'<div class="edu-cover-period">'+periodStr+'</div>':'')
+      +'</div>'
+      // 하단 정보
+      +'<div style="position:absolute;bottom:8px;left:0;right:0;text-align:center;font-size:9px;color:rgba(255,255,255,0.4)">'
+        +(p.rows?p.rows.length:0)+'개 영역'
+      +'</div>'
+      // 표지 변경 버튼
+      +'<button class="edu-cover-btn" onclick="event.stopPropagation();eduOpenCoverModal(\''+p.id+'\')" title="표지 변경">🎨</button>'
+      // 삭제 버튼
+      +'<button class="edu-cover-del" onclick="event.stopPropagation();eduDeletePlan(\''+p.id+'\')" title="삭제">🗑️</button>'
+    +'</div>';
   });
   html += '</div>';
   grid.innerHTML = html;
+}
+
+function eduOpenCoverModal(planId) {
+  var p = eduPlans.find(function(x){ return x.id===planId; });
+  if(!p) return;
+  document.getElementById('eduCoverPlanId').value = planId;
+  var curId = p.coverId || 'flower';
+  var html = EDU_COVERS.map(function(c){
+    var sel = (c.id===curId);
+    return '<div onclick="eduSelectCover(\''+c.id+'\')" id="eduCoverOpt-'+c.id+'" style="'
+      +'background:'+c.bg+';border-radius:10px;padding:12px 8px;text-align:center;cursor:pointer;'
+      +'border:3px solid '+(sel?'#f0e6c8':'transparent')+';position:relative;transition:border .15s">'
+      +'<div style="font-size:11px;color:#fff;font-weight:'+(sel?'700':'400')+'">'+c.label+'</div>'
+      +(sel?'<div style="position:absolute;top:4px;right:4px;font-size:10px">✓</div>':'')
+      +'</div>';
+  }).join('');
+  document.getElementById('eduCoverGrid').innerHTML = html;
+  document.getElementById('eduCoverOverlay').classList.add('show');
+}
+
+function eduSelectCover(coverId) {
+  // 선택 표시 갱신
+  EDU_COVERS.forEach(function(c){
+    var el = document.getElementById('eduCoverOpt-'+c.id);
+    if(!el) return;
+    el.style.borderColor = (c.id===coverId) ? '#f0e6c8' : 'transparent';
+    el.querySelector('div').style.fontWeight = (c.id===coverId) ? '700' : '400';
+  });
+  document.getElementById('eduCoverPlanId').dataset.selectedCover = coverId;
+}
+
+function eduSaveCover() {
+  var planId = document.getElementById('eduCoverPlanId').value;
+  var coverId = document.getElementById('eduCoverPlanId').dataset.selectedCover;
+  if(!planId || !coverId) { closeOverlay('eduCoverOverlay'); return; }
+  var cover = eduCoverById(coverId);
+  ucol('eduPlans').doc(planId).set({ coverId: coverId, coverBg: cover.bg, coverAccent: cover.accent }, {merge:true});
+  closeOverlay('eduCoverOverlay');
 }
 
 function eduNewPlan() {
