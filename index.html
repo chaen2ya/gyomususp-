@@ -151,8 +151,8 @@ body{background:var(--cover);color:var(--ink);display:flex;flex-direction:column
 .cal-grid{width:100%;border-collapse:collapse;table-layout:fixed;}
 .cal-grid th{text-align:center;font-size:11px;font-weight:600;color:var(--ink-soft);
   padding:4px 0;border-bottom:1px solid var(--paper-line);width:calc(100%/7)}
-.cal-grid th:first-child{color:#e53935}
-.cal-grid th:last-child{color:#1565c0}
+.cal-grid th:nth-child(6){color:#1565c0}
+.cal-grid th:nth-child(7){color:#e53935}
 .cal-day{vertical-align:top;border:1px solid var(--paper-line);padding:2px;
   height:80px;cursor:pointer;position:relative;transition:background .1s}
 .cal-day:hover{background:#f0f4ff}
@@ -1069,11 +1069,11 @@ function calFetchEvents() {
 function calRender() {
   var body = document.getElementById('calBody');
   var now = new Date();
-  var firstDay = new Date(calYear, calMonth, 1).getDay();
+  var firstDay = (new Date(calYear, calMonth, 1).getDay() + 6) % 7; // 월요일=0
   var daysInMonth = new Date(calYear, calMonth+1, 0).getDate();
   var daysInPrev  = new Date(calYear, calMonth, 0).getDate();
   var months = ['1월','2월','3월','4월','5월','6월','7월','8월','9월','10월','11월','12월'];
-  var days   = ['일','월','화','수','목','금','토'];
+  var days   = ['월','화','수','목','금','토','일'];
 
   var html = '<div class="cal-nav">'+
     '<div class="cal-nav-btns">'+
@@ -1109,8 +1109,8 @@ function calRender() {
       var cls = 'cal-day';
       if(isOther) cls += ' other-month';
       if(isToday) cls += ' today';
-      if(col===0) cls += ' sunday';
-      if(col===6) cls += ' saturday';
+      if(col===5) cls += ' saturday';
+      if(col===6) cls += ' sunday';
 
       // 이 날의 이벤트
       var targetDate;
