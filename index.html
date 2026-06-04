@@ -1131,6 +1131,13 @@ function signIn() {
   var provider = new firebase.auth.GoogleAuthProvider();
   auth.signInWithRedirect(provider);
 }
+
+// 리다이렉트 로그인 결과 처리
+auth.getRedirectResult().then(function(result) {
+  // 결과는 onAuthStateChanged에서 처리됨
+}).catch(function(e) {
+  console.error('redirect error', e);
+});
 function signOut() {
   if(!confirm('로그아웃하시겠습니까?')) return;
   unsubscribers.forEach(function(fn){ fn(); });
