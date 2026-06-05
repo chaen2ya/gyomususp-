@@ -2885,6 +2885,26 @@ function renderEduTable() {
   var BW='3px solid #4a5568', BN='1px solid #dde2ea';
   var dowName=['','월','화','수','목','금'];
 
+  /* 공휴일 날짜 Set 만들기: 학사일정 캘린더 이벤트 중 종일행사만 추출 */
+  var holidayDates={};
+  if(typeof calEvents!=='undefined'){
+    calEvents.forEach(function(ev){
+      if(!ev._calName||ev._calName.indexOf('학사일정')<0) return;
+      if(!ev.start||!ev.start.date) return; // 종일 행사만
+      var s=ev.start.date;
+      var eRaw=ev.end?ev.end.date:s;
+      var cur=new Date(s+'T00:00:00');
+      var end=new Date(eRaw+'T00:00:00');
+      end.setDate(end.getDate()-1); // 구글 캘린더 end는 exclusive
+      while(cur<=end){
+        var ds=cur.toISOString().slice(0,10);
+        holidayDates[ds]=true;
+        cur.setDate(cur.getDate()+1);
+      }
+    });
+  }
+  var HOLIDAY_BG='#fff0ee';
+
   var html='<thead><tr>';
   html+='<th rowspan="3" style="width:'+CAT+'px;position:sticky;left:0;z-index:3;background:#16213e;font-size:9px;min-width:'+CAT+'px">대분류</th>';
   html+='<th rowspan="3" style="width:'+ROW+'px;position:sticky;left:'+CAT+'px;z-index:3;background:#1c2340;font-size:9px;min-width:'+ROW+'px">영역</th>';
@@ -2955,12 +2975,13 @@ function renderEduTable() {
             });
             calEvt=matched.map(function(ev){return ev.summary||'';}).join(', ');
           }
-          html+='<td style="background:'+mr.bg
+          var tdBg=holidayDates[d.dateStr]?HOLIDAY_BG:mr.bg;
+          html+='<td style="background:'+tdBg
             +';border-top:'+BN+';border-bottom:'+BN
             +';border-left:'+(di===0?BW:BN)
             +';border-right:'+(isLC?(isLast?BW:BW):BN)
             +';padding:2px 3px;cursor:pointer;vertical-align:top;width:'+DAY+'px" onclick="eduMetaDateClick(\''+mr.key+'\',\''+d.dateStr+'\')">'
-            +'<div style="font-size:9px;color:'+mr.color+';min-height:18px;line-height:1.3;word-break:break-all">'
+            +'<div style="font-size:9px;color:'+mr.color+';min-height:18px;line-height:1.3;word-break:break-all;white-space:pre-wrap">'
             +(calEvt&&!val?'<span style="color:#c08000">'+esc(calEvt)+'</span>':'')
             +(val?esc(val):'')
             +(!val&&!calEvt?'<span style="color:#ddd;font-size:8px">+</span>':'')
@@ -2996,7 +3017,8 @@ function renderEduTable() {
           if(typeof stored==='object'){ cellTitle=stored.title||''; cellHasContent=!!(stored.title||stored.content); }
           else { cellTitle=String(stored).split('\n')[0].slice(0,20); cellHasContent=true; }
         }
-        html+='<td style="border-top:'+BN+';border-bottom:'+BN
+        var cellBg=holidayDates[d.dateStr]?HOLIDAY_BG:'';
+        html+='<td style="'+(cellBg?'background:'+cellBg+';':'')+'border-top:'+BN+';border-bottom:'+BN
           +';border-left:'+(di===0?BW:BN)
           +';border-right:'+(isLC?(isLast?BW:BW):BN)
           +';padding:2px 3px;vertical-align:top;cursor:pointer;width:'+DAY+'px" onclick="eduCellClick(\''+esc(key)+'\',\''+esc(r.label)+'\',\''+d.dateStr+'\')">'
