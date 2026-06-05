@@ -1428,7 +1428,14 @@ function calRender() {
 
       var dayEvts = calEvents.filter(function(ev) {
         var s = ev.start && (ev.start.date || ev.start.dateTime||'').slice(0,10);
-        return s === dateStr;
+        var eRaw = ev.end && (ev.end.date || ev.end.dateTime||'');
+        var e = eRaw.slice(0,10);
+        // 종일 이벤트는 end.date가 exclusive(마지막 날 다음날)이므로 1일 빼서 비교
+        if(ev.end && ev.end.date && !ev.end.dateTime) {
+          var endD = new Date(e); endD.setDate(endD.getDate()-1);
+          e = endD.getFullYear()+'-'+String(endD.getMonth()+1).padStart(2,'0')+'-'+String(endD.getDate()).padStart(2,'0');
+        }
+        return s <= dateStr && dateStr <= e;
       });
 
       // 미완료 할일 중 해당 날짜인 것
