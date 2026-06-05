@@ -962,10 +962,15 @@ body{background:var(--cover);color:var(--ink);display:flex;flex-direction:column
     <input type="hidden" id="contactType">
     <input type="hidden" id="contactEditId">
     <div class="fg"><label>이름</label><input type="text" id="cName" placeholder="이름"></div>
-    <div class="fg"><label id="cRoleLbl">직책 / 담당</label><input type="text" id="cRole"></div>
-    <div class="fg"><label id="cPhoneLbl">전화번호</label><input type="tel" id="cPhone" placeholder="010-0000-0000"></div>
-    <div class="fg" id="cParentGrp" style="display:none"><label>보호자 이름</label><input type="text" id="cParent"></div>
-    <div class="fg" id="cParentPhGrp" style="display:none"><label>보호자 전화</label><input type="tel" id="cParentPh" placeholder="010-0000-0000"></div>
+    <!-- 교직원용 -->
+    <div class="fg" id="cRoleGrp"><label id="cRoleLbl">직책 / 담당</label><input type="text" id="cRole"></div>
+    <div class="fg" id="cPhoneGrp"><label id="cPhoneLbl">전화번호</label><input type="tel" id="cPhone" placeholder="010-0000-0000"></div>
+    <!-- 학생용 -->
+    <div class="fg" id="cBirthGrp" style="display:none"><label>생년월일</label><input type="text" id="cBirth" placeholder="예: 21.09.27"></div>
+    <div class="fg" id="cMomGrp" style="display:none"><label>엄마 이름</label><input type="text" id="cMom" placeholder="이름"></div>
+    <div class="fg" id="cMomPhGrp" style="display:none"><label>엄마 번호</label><input type="tel" id="cMomPh" placeholder="010-0000-0000"></div>
+    <div class="fg" id="cDadGrp" style="display:none"><label>아빠 이름</label><input type="text" id="cDad" placeholder="이름"></div>
+    <div class="fg" id="cDadPhGrp" style="display:none"><label>아빠 번호</label><input type="tel" id="cDadPh" placeholder="010-0000-0000"></div>
     <div class="modal-btns">
       <button class="btn-cancel" onclick="closeOverlay('contactOverlay')">취소</button>
       <button class="btn-save" onclick="saveContact()">저장</button>
@@ -1208,6 +1213,26 @@ function setupListeners() {
   }));
   unsubscribers.push(uref('data/students').onSnapshot(function(snap) {
     studs = snap.exists ? (snap.data().items || []) : [];
+    // 비어있으면 사진의 학생 데이터 자동 입력
+    if(!studs.length) {
+      studs = [
+        {id:1,name:'김서윤',birth:'21.09.27',mom:'이민희',momPh:'010-4177-6895',dad:'김태균',dadPh:'010-4103-6895'},
+        {id:2,name:'박서우',birth:'21.01.04',mom:'조하나',momPh:'010-5026-1987',dad:'박종필',dadPh:'010-9011-1444'},
+        {id:3,name:'방지민',birth:'21.03.30',mom:'이채원',momPh:'010-9268-6575',dad:'방기수',dadPh:'010-5133-1663'},
+        {id:4,name:'신지엽',birth:'21.07.27',mom:'김지수',momPh:'010-7795-6029',dad:'신민승',dadPh:'010-6474-8675'},
+        {id:5,name:'이나은',birth:'21.01.20',mom:'정주희',momPh:'010-9282-2424',dad:'이세영',dadPh:'010-5220-8714'},
+        {id:6,name:'여신재',birth:'21.05.31',mom:'이슬비',momPh:'010-6548-5568',dad:'여지훈',dadPh:'010-3087-2153'},
+        {id:7,name:'이아윤',birth:'21.06.25',mom:'최가현',momPh:'010-3102-3513',dad:'이휘열',dadPh:'010-5058-6480'},
+        {id:8,name:'정라온',birth:'21.06.30',mom:'김유리',momPh:'010-4447-8302',dad:'정지홍',dadPh:'010-4033-7288'},
+        {id:9,name:'정서아',birth:'21.07.13',mom:'김수민',momPh:'010-4812-1194',dad:'정호준',dadPh:'010-9171-1194'},
+        {id:10,name:'정윤찬',birth:'21.01.26',mom:'조주미',momPh:'010-8955-5788',dad:'정광진',dadPh:'010-7445-3208'},
+        {id:11,name:'조은우',birth:'21.07.20',mom:'류다영',momPh:'010-5593-5757',dad:'조윤제',dadPh:'010-4876-5285'},
+        {id:12,name:'최시우',birth:'21.11.20',mom:'이경은',momPh:'010-2819-0120',dad:'최승현',dadPh:'010-5333-2489'},
+        {id:13,name:'오하윤',birth:'21.06.29',mom:'탄혜원',momPh:'010-4163-4788',dad:'오준일',dadPh:'010-8255-4735'},
+        {id:14,name:'박유은',birth:'21.05.18',mom:'정다미',momPh:'010-4611-1583',dad:'박경득',dadPh:'010-5338-9748'}
+      ];
+      saveStudents();
+    }
     if(appReady) renderStudents();
     onDocLoaded();
   }));
@@ -1324,7 +1349,6 @@ function calInit() {
         }
         return;
       }
-      // 토큰 + 만료시각 저장 (55분 후 만료로 안전하게)
       var expiresAt = Date.now() + 55 * 60 * 1000;
       try {
         localStorage.setItem('calToken', resp.access_token);
@@ -1340,8 +1364,6 @@ function calInit() {
     if(snap.exists && snap.data().calSelected) {
       calSelected = snap.data().calSelected;
     }
-
-    // 저장된 토큰이 유효하면 바로 사용
     try {
       var saved = localStorage.getItem('calToken');
       var exp   = parseInt(localStorage.getItem('calTokenExp')||'0');
@@ -1352,8 +1374,6 @@ function calInit() {
         return;
       }
     } catch(e){}
-
-    // 저장 토큰 없거나 만료됐으면 → Safari/PWA면 버튼, 아니면 silent 시도
     var isSafariPWA = /^((?!chrome|android).)*safari/i.test(navigator.userAgent)
                    || window.navigator.standalone === true;
     if(isSafariPWA) {
@@ -2256,18 +2276,36 @@ function openContactModal(type, id) {
   document.getElementById('contactEditId').value=id||'';
   var isStu=(type==='student');
   document.getElementById('contactModalTitle').textContent=isStu?'학생 추가/수정':'교직원 추가/수정';
-  document.getElementById('cRoleLbl').textContent=isStu?'번호 / 반':'직책 / 담당';
-  document.getElementById('cRole').placeholder=isStu?'예: 3반 12번':'예: 3학년부장';
-  document.getElementById('cPhoneLbl').textContent=isStu?'학생 전화번호':'전화번호';
-  document.getElementById('cParentGrp').style.display=isStu?'':'none';
-  document.getElementById('cParentPhGrp').style.display=isStu?'':'none';
+  // 교직원 전용 필드
+  document.getElementById('cRoleGrp').style.display=isStu?'none':'';
+  document.getElementById('cPhoneGrp').style.display=isStu?'none':'';
+  // 학생 전용 필드
+  ['cBirthGrp','cMomGrp','cMomPhGrp','cDadGrp','cDadPhGrp'].forEach(function(gid){
+    document.getElementById(gid).style.display=isStu?'':'none';
+  });
   if(id){
     var arr=isStu?studs:staff, c=arr.find(function(x){ return x.id===id; });
-    if(c){ document.getElementById('cName').value=c.name||''; document.getElementById('cRole').value=c.role||'';
-      document.getElementById('cPhone').value=c.phone||''; document.getElementById('cParent').value=c.parent||'';
-      document.getElementById('cParentPh').value=c.parentPh||''; }
+    if(c){
+      document.getElementById('cName').value=c.name||'';
+      if(isStu){
+        document.getElementById('cBirth').value=c.birth||'';
+        document.getElementById('cMom').value=c.mom||'';
+        document.getElementById('cMomPh').value=c.momPh||'';
+        document.getElementById('cDad').value=c.dad||'';
+        document.getElementById('cDadPh').value=c.dadPh||'';
+      } else {
+        document.getElementById('cRole').value=c.role||'';
+        document.getElementById('cPhone').value=c.phone||'';
+      }
+    }
   } else {
-    ['cName','cRole','cPhone','cParent','cParentPh'].forEach(function(id){ document.getElementById(id).value=''; });
+    document.getElementById('cName').value='';
+    if(isStu){
+      ['cBirth','cMom','cMomPh','cDad','cDadPh'].forEach(function(fid){ document.getElementById(fid).value=''; });
+    } else {
+      document.getElementById('cRole').value='';
+      document.getElementById('cPhone').value='';
+    }
   }
   document.getElementById('contactOverlay').classList.add('show');
 }
@@ -2275,17 +2313,25 @@ function saveContact() {
   var type=document.getElementById('contactType').value, eid=document.getElementById('contactEditId').value;
   var name=document.getElementById('cName').value.trim();
   if(!name){ alert('이름을 입력해주세요.'); return; }
-  var entry={id:eid?Number(eid):Date.now(), name:name, role:document.getElementById('cRole').value.trim(),
-    phone:document.getElementById('cPhone').value.trim(), parent:document.getElementById('cParent').value.trim(),
-    parentPh:document.getElementById('cParentPh').value.trim()};
-  if(type==='staff'){
-    if(eid) staff=staff.map(function(c){ return c.id==eid?entry:c; }); else staff.push(entry);
-    staff.sort(function(a,b){ return a.name.localeCompare(b.name,'ko'); });
-    saveStaff();
-  } else {
+  var isStu=(type==='student');
+  var entry;
+  if(isStu){
+    entry={id:eid?Number(eid):Date.now(), name:name,
+      birth:document.getElementById('cBirth').value.trim(),
+      mom:document.getElementById('cMom').value.trim(),
+      momPh:document.getElementById('cMomPh').value.trim(),
+      dad:document.getElementById('cDad').value.trim(),
+      dadPh:document.getElementById('cDadPh').value.trim()};
     if(eid) studs=studs.map(function(c){ return c.id==eid?entry:c; }); else studs.push(entry);
     studs.sort(function(a,b){ return a.name.localeCompare(b.name,'ko'); });
     saveStudents();
+  } else {
+    entry={id:eid?Number(eid):Date.now(), name:name,
+      role:document.getElementById('cRole').value.trim(),
+      phone:document.getElementById('cPhone').value.trim()};
+    if(eid) staff=staff.map(function(c){ return c.id==eid?entry:c; }); else staff.push(entry);
+    staff.sort(function(a,b){ return a.name.localeCompare(b.name,'ko'); });
+    saveStaff();
   }
   closeOverlay('contactOverlay');
 }
@@ -2308,15 +2354,17 @@ function renderStaff() {
 }
 function renderStudents() {
   var q=document.getElementById('stuQ').value.toLowerCase(), list=document.getElementById('stuList');
-  var filtered=studs.filter(function(c){ return c.name.toLowerCase().includes(q)||(c.parent||'').toLowerCase().includes(q); });
+  var filtered=studs.filter(function(c){ return c.name.toLowerCase().includes(q)||(c.mom||'').toLowerCase().includes(q)||(c.dad||'').toLowerCase().includes(q); });
   if(!filtered.length){ list.innerHTML='<div class="empty"><div class="ei">📱</div><p>학생 연락처를 추가해주세요.</p></div>'; return; }
   list.innerHTML=filtered.map(function(c){
     return '<div class="c-item"><div class="c-avatar" style="background:#2a6db5;">'+esc(c.name.charAt(0))+'</div>'+
-      '<div class="c-info"><div class="c-name">'+esc(c.name)+'</div>'+
-      '<div class="c-role">'+esc(c.role||'')+(c.parent?' · 보호자: '+esc(c.parent):'')+'</div></div>'+
+      '<div class="c-info"><div class="c-name">'+esc(c.name)+(c.birth?' <span style="font-size:11px;color:var(--ink-soft)">'+esc(c.birth)+'</span>':'')+'</div>'+
+      '<div class="c-role">'+
+        (c.mom?'모: '+esc(c.mom):'')+(c.dad?(c.mom?' · ':'')+'부: '+esc(c.dad):'')+
+      '</div></div>'+
       '<div style="display:flex;gap:4px;flex-wrap:wrap;align-items:center;">'+
-        (c.phone?'<a class="call-btn blue" href="tel:'+c.phone+'">📞 학생</a>':'')+
-        (c.parentPh?'<a class="call-btn" href="tel:'+c.parentPh+'">📞 보호자</a>':'')+
+        (c.momPh?'<a class="call-btn" href="tel:'+c.momPh+'">📞 모</a>':'')+
+        (c.dadPh?'<a class="call-btn blue" href="tel:'+c.dadPh+'">📞 부</a>':'')+
         '<div class="c-actions"><button class="ic-btn" onclick="openContactModal(\'student\','+c.id+')">✏️</button>'+
         '<button class="ic-btn" onclick="deleteContact(\'student\','+c.id+')" style="color:#e57373">🗑️</button></div>'+
       '</div></div>';
