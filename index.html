@@ -2668,7 +2668,14 @@ var curEduData = null; // {name, weeks, rows:[{cat,label}], metas:{w0:{topic,eve
 
 function saveEduPlan() {
   if(!curEduId) return;
-  ucol('eduPlans').doc(curEduId).set(curEduData, {merge:true});
+  var ref = ucol('eduPlans').doc(curEduId);
+  // 나머지 필드는 merge:true로 저장
+  ref.set(curEduData, {merge:true});
+  // cells, holidays는 merge:true가 삭제된 키를 반영 못하므로 update로 전체 교체
+  ref.update({
+    cells:    curEduData.cells    || {},
+    holidays: curEduData.holidays || []
+  });
 }
 
 var EDU_COVERS = [
@@ -3212,7 +3219,10 @@ function addEduMetaItem(text, idx){
   var del = document.createElement('button');
   del.textContent = '✕';
   del.style.cssText = 'background:none;border:none;color:#ccc;font-size:16px;cursor:pointer;padding:0 4px;flex-shrink:0';
-  del.onclick = function(){ if(list.children.length>1) list.removeChild(row); };
+  del.onclick = function(){
+    if(list.children.length>1){ list.removeChild(row); }
+    else { inp.value=''; inp.focus(); } // 마지막 항목은 텍스트만 비움
+  };
   row.appendChild(inp);
   row.appendChild(del);
   list.appendChild(row);
