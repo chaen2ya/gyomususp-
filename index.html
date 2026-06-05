@@ -962,10 +962,8 @@ body{background:var(--cover);color:var(--ink);display:flex;flex-direction:column
     <input type="hidden" id="contactType">
     <input type="hidden" id="contactEditId">
     <div class="fg"><label>이름</label><input type="text" id="cName" placeholder="이름"></div>
-    <!-- 교직원용 -->
     <div class="fg" id="cRoleGrp"><label id="cRoleLbl">직책 / 담당</label><input type="text" id="cRole"></div>
     <div class="fg" id="cPhoneGrp"><label id="cPhoneLbl">전화번호</label><input type="tel" id="cPhone" placeholder="010-0000-0000"></div>
-    <!-- 학생용 -->
     <div class="fg" id="cBirthGrp" style="display:none"><label>생년월일</label><input type="text" id="cBirth" placeholder="예: 21.09.27"></div>
     <div class="fg" id="cMomGrp" style="display:none"><label>엄마 이름</label><input type="text" id="cMom" placeholder="이름"></div>
     <div class="fg" id="cMomPhGrp" style="display:none"><label>엄마 번호</label><input type="tel" id="cMomPh" placeholder="010-0000-0000"></div>
@@ -1208,31 +1206,46 @@ function setupListeners() {
   }));
   unsubscribers.push(uref('data/staff').onSnapshot(function(snap) {
     staff = snap.exists ? (snap.data().items || []) : [];
+    if(!staff.length) {
+      staff = [
+        {id:101,name:'이현진',role:'원장',phone:'010-3729-2275'},
+        {id:102,name:'김세진',role:'원감',phone:'010-5792-2414'},
+        {id:103,name:'김지혜',role:'새싹1반/교무부장',phone:'010-9319-7570'},
+        {id:104,name:'봉유민',role:'새싹2반/정보',phone:'010-5465-9842'},
+        {id:105,name:'김현주',role:'에듀케어(새싹사랑1반)',phone:'010-6298-6189'},
+        {id:106,name:'채연옥',role:'행정실장',phone:'010-9032-2208'},
+        {id:107,name:'김채은',role:'꽃잎1반/안전',phone:'010-4064-4628'},
+        {id:108,name:'구양희',role:'꽃잎2반/생활',phone:'010-2688-1522'},
+        {id:109,name:'김민주',role:'에듀케어(새싹사랑2반)',phone:'010-9799-5807'},
+        {id:110,name:'박정만',role:'주무관(행정)',phone:'010-3078-8629'},
+        {id:111,name:'김정은',role:'열매반/연구부장',phone:'010-4576-1319'},
+        {id:112,name:'김보람',role:'햇살반/특수·물품',phone:'010-3265-6657'},
+        {id:113,name:'신선미',role:'에듀케어(꽃잎사랑1반)',phone:'010-8661-0639'},
+        {id:114,name:'임창희',role:'주무관(시설)',phone:'010-5604-9776'},
+        {id:115,name:'김호진',role:'교육실무사',phone:'010-2174-4322'},
+        {id:116,name:'유은아',role:'특수교육실무사',phone:'010-2273-5631'},
+        {id:117,name:'정유미',role:'에듀케어(꽃잎사랑2반)',phone:'010-2639-9337'},
+        {id:118,name:'이진선',role:'영양사',phone:'010-5005-6117'},
+        {id:119,name:'진민경',role:'순회 시간 강사',phone:'010-5620-7593'},
+        {id:120,name:'이인혜',role:'특수교육실무사',phone:'010-3293-0215'},
+        {id:121,name:'이미영',role:'에듀케어(열매사랑1반)',phone:'010-8711-1536'},
+        {id:122,name:'우병희',role:'조리사',phone:'010-6450-3156'},
+        {id:123,name:'김승아',role:'돌봄(아침) 1',phone:'010-4326-1247'},
+        {id:124,name:'박혜인',role:'돌봄(아침) 2',phone:'010-9250-6553'},
+        {id:125,name:'강지혜',role:'에듀케어(특수)',phone:'010-6334-9048'},
+        {id:126,name:'한정희',role:'조리실무사',phone:'010-4748-7608'},
+        {id:127,name:'이은혜',role:'3세지원인력 1',phone:'010-6245-6300'},
+        {id:128,name:'배은미',role:'3세지원인력 2',phone:'010-3488-2988'},
+        {id:129,name:'김미숙',role:'방과후 지원(하모니)',phone:'010-9011-9644'},
+        {id:130,name:'권희선',role:'방과후 지원(귀가)',phone:'010-9350-5686'}
+      ];
+      saveStaff();
+    }
     if(appReady) renderStaff();
     onDocLoaded();
   }));
   unsubscribers.push(uref('data/students').onSnapshot(function(snap) {
     studs = snap.exists ? (snap.data().items || []) : [];
-    // 비어있으면 사진의 학생 데이터 자동 입력
-    if(!studs.length) {
-      studs = [
-        {id:1,name:'김서윤',birth:'21.09.27',mom:'이민희',momPh:'010-4177-6895',dad:'김태균',dadPh:'010-4103-6895'},
-        {id:2,name:'박서우',birth:'21.01.04',mom:'조하나',momPh:'010-5026-1987',dad:'박종필',dadPh:'010-9011-1444'},
-        {id:3,name:'방지민',birth:'21.03.30',mom:'이채원',momPh:'010-9268-6575',dad:'방기수',dadPh:'010-5133-1663'},
-        {id:4,name:'신지엽',birth:'21.07.27',mom:'김지수',momPh:'010-7795-6029',dad:'신민승',dadPh:'010-6474-8675'},
-        {id:5,name:'이나은',birth:'21.01.20',mom:'정주희',momPh:'010-9282-2424',dad:'이세영',dadPh:'010-5220-8714'},
-        {id:6,name:'여신재',birth:'21.05.31',mom:'이슬비',momPh:'010-6548-5568',dad:'여지훈',dadPh:'010-3087-2153'},
-        {id:7,name:'이아윤',birth:'21.06.25',mom:'최가현',momPh:'010-3102-3513',dad:'이휘열',dadPh:'010-5058-6480'},
-        {id:8,name:'정라온',birth:'21.06.30',mom:'김유리',momPh:'010-4447-8302',dad:'정지홍',dadPh:'010-4033-7288'},
-        {id:9,name:'정서아',birth:'21.07.13',mom:'김수민',momPh:'010-4812-1194',dad:'정호준',dadPh:'010-9171-1194'},
-        {id:10,name:'정윤찬',birth:'21.01.26',mom:'조주미',momPh:'010-8955-5788',dad:'정광진',dadPh:'010-7445-3208'},
-        {id:11,name:'조은우',birth:'21.07.20',mom:'류다영',momPh:'010-5593-5757',dad:'조윤제',dadPh:'010-4876-5285'},
-        {id:12,name:'최시우',birth:'21.11.20',mom:'이경은',momPh:'010-2819-0120',dad:'최승현',dadPh:'010-5333-2489'},
-        {id:13,name:'오하윤',birth:'21.06.29',mom:'탄혜원',momPh:'010-4163-4788',dad:'오준일',dadPh:'010-8255-4735'},
-        {id:14,name:'박유은',birth:'21.05.18',mom:'정다미',momPh:'010-4611-1583',dad:'박경득',dadPh:'010-5338-9748'}
-      ];
-      saveStudents();
-    }
     if(appReady) renderStudents();
     onDocLoaded();
   }));
@@ -2276,10 +2289,8 @@ function openContactModal(type, id) {
   document.getElementById('contactEditId').value=id||'';
   var isStu=(type==='student');
   document.getElementById('contactModalTitle').textContent=isStu?'학생 추가/수정':'교직원 추가/수정';
-  // 교직원 전용 필드
   document.getElementById('cRoleGrp').style.display=isStu?'none':'';
   document.getElementById('cPhoneGrp').style.display=isStu?'none':'';
-  // 학생 전용 필드
   ['cBirthGrp','cMomGrp','cMomPhGrp','cDadGrp','cDadPhGrp'].forEach(function(gid){
     document.getElementById(gid).style.display=isStu?'':'none';
   });
@@ -2359,9 +2370,7 @@ function renderStudents() {
   list.innerHTML=filtered.map(function(c){
     return '<div class="c-item"><div class="c-avatar" style="background:#2a6db5;">'+esc(c.name.charAt(0))+'</div>'+
       '<div class="c-info"><div class="c-name">'+esc(c.name)+(c.birth?' <span style="font-size:11px;color:var(--ink-soft)">'+esc(c.birth)+'</span>':'')+'</div>'+
-      '<div class="c-role">'+
-        (c.mom?'모: '+esc(c.mom):'')+(c.dad?(c.mom?' · ':'')+'부: '+esc(c.dad):'')+
-      '</div></div>'+
+      '<div class="c-role">'+(c.mom?'모: '+esc(c.mom):'')+(c.dad?(c.mom?' · ':'')+'부: '+esc(c.dad):'')+'</div></div>'+
       '<div style="display:flex;gap:4px;flex-wrap:wrap;align-items:center;">'+
         (c.momPh?'<a class="call-btn" href="tel:'+c.momPh+'">📞 모</a>':'')+
         (c.dadPh?'<a class="call-btn blue" href="tel:'+c.dadPh+'">📞 부</a>':'')+
