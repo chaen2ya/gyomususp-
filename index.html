@@ -836,6 +836,29 @@ body{background:var(--cover);color:var(--ink);display:flex;flex-direction:column
 
 </div><!-- #appScreen -->
 
+<!-- 행사/수업/업무 입력 모달 -->
+<div class="overlay" id="eduMetaOverlay">
+  <div class="modal" style="max-width:360px">
+    <div class="modal-title" id="eduMetaModalTitle">입력</div>
+    <input type="hidden" id="eduMetaField">
+    <input type="hidden" id="eduMetaDate">
+    <div id="eduMetaItemList" style="margin-bottom:10px"></div>
+    <button onclick="addEduMetaItem('', -1); var rows=document.getElementById('eduMetaItemList').querySelectorAll('input[type=text]'); rows[rows.length-1].focus();"
+      style="width:100%;padding:7px;border:1px dashed #c8d0d8;border-radius:6px;background:#f9f9f9;font-size:13px;font-family:'MyHandwriting','Noto Sans KR',sans-serif;cursor:pointer;color:#6b7a8a;margin-bottom:12px">
+      + 항목 추가
+    </button>
+    <div style="display:flex;align-items:center;gap:8px;margin-bottom:14px;padding:8px 10px;background:#f5f7fa;border-radius:6px">
+      <input type="checkbox" id="eduMetaBgCheck" onchange="document.getElementById('eduMetaBgPicker').style.display=this.checked?'inline-block':'none'" style="width:16px;height:16px;accent-color:var(--cover);cursor:pointer">
+      <label for="eduMetaBgCheck" style="font-size:13px;color:var(--ink);cursor:pointer">배경색 설정</label>
+      <input type="color" id="eduMetaBgColor" value="#ffffff" style="display:none;width:36px;height:28px;border:none;cursor:pointer;border-radius:4px;padding:0">
+    </div>
+    <div class="modal-btns">
+      <button class="btn-cancel" onclick="closeOverlay('eduMetaOverlay')">취소</button>
+      <button class="btn-save" onclick="saveEduMetaModal()">저장</button>
+    </div>
+  </div>
+</div>
+
 <!-- 캘린더 일정 추가/수정 모달 -->
 <div class="overlay" id="calEventOverlay">
   <div class="modal">
@@ -2948,9 +2971,7 @@ function renderEduTable() {
   var BW='3px solid #4a5568', BN='1px solid #dde2ea';
   var dowName=['','월','화','수','목','금'];
 
-  /* 공휴일 날짜: eduFetchCalForTable에서 채운 eduHolidayDates 사용 */
-  var holidayDates = (typeof eduHolidayDates !== 'undefined') ? eduHolidayDates : {};
-  var HOLIDAY_BG='#fff0ee';
+  /* 공휴일 배경색 제거 - 셀별 커스텀 색상으로 대체 */
 
   var html='<thead><tr>';
   html+='<th rowspan="3" style="width:'+CAT+'px;position:sticky;left:0;z-index:3;background:#16213e;font-size:9px;min-width:'+CAT+'px">대분류</th>';
@@ -3010,7 +3031,10 @@ function renderEduTable() {
       } else {
         w.dates.forEach(function(d,di){
           var isLC=(di===w.dates.length-1);
-          var val=(curEduData.cells||{})[mr.key+'_'+d.dateStr]||'';
+          var cellData=(curEduData.cells||{})[mr.key+'_'+d.dateStr];
+          var val='', cellBgColor='';
+          if(cellData && typeof cellData==='object'){ val=cellData.items?cellData.items.map(function(i){return i.text;}).join('\n'):''; cellBgColor=cellData.bg||''; }
+          else if(cellData){ val=String(cellData); }
           var calEvt='';
           if(mr.key==='event'&&typeof calEvents!=='undefined'){
             var matched=calEvents.filter(function(ev){
@@ -3022,7 +3046,7 @@ function renderEduTable() {
             });
             calEvt=matched.map(function(ev){return ev.summary||'';}).join(', ');
           }
-          var tdBg=holidayDates[d.dateStr]?HOLIDAY_BG:mr.bg;
+          var tdBg=cellBgColor||mr.bg;
           html+='<td style="background:'+tdBg
             +';border-top:'+BN+';border-bottom:'+BN
             +';border-left:'+(di===0?BW:BN)
@@ -3064,7 +3088,7 @@ function renderEduTable() {
           if(typeof stored==='object'){ cellTitle=stored.title||''; cellHasContent=!!(stored.title||stored.content); }
           else { cellTitle=String(stored).split('\n')[0].slice(0,20); cellHasContent=true; }
         }
-        var cellBg=holidayDates[d.dateStr]?HOLIDAY_BG:'';
+        var cellBg='';
         html+='<td style="'+(cellBg?'background:'+cellBg+';':'')+'border-top:'+BN+';border-bottom:'+BN
           +';border-left:'+(di===0?BW:BN)
           +';border-right:'+(isLC?(isLast?BW:BW):BN)
@@ -3092,11 +3116,73 @@ function eduMetaClick(wKey,field){
 function eduMetaDateClick(field,dateStr){
   if(!curEduData.cells)curEduData.cells={};
   var labels={event:'행사',work:'수업',task:'업무'};
-  var cur=curEduData.cells[field+'_'+dateStr]||'';
-  var val=prompt(dateStr+' '+labels[field]+' 입력:',cur);
-  if(val===null) return;
-  var k=field+'_'+dateStr;
-  if(val.trim())curEduData.cells[k]=val.trim(); else delete curEduData.cells[k];
+  var stored=curEduData.cells[field+'_'+dateStr];
+  // 기존 데이터 정규화
+  var items=[], bg='';
+  if(stored){
+    if(typeof stored==='object' && stored.items){ items=stored.items.slice(); bg=stored.bg||''; }
+    else if(typeof stored==='string' && stored){ items=[{text:stored}]; }
+  }
+  openEduMetaModal(field, dateStr, labels[field], items, bg);
+}
+
+function openEduMetaModal(field, dateStr, label, items, bg){
+  document.getElementById('eduMetaModalTitle').textContent = dateStr + ' · ' + label;
+  document.getElementById('eduMetaField').value = field;
+  document.getElementById('eduMetaDate').value = dateStr;
+  document.getElementById('eduMetaBgColor').value = bg || '#ffffff';
+  document.getElementById('eduMetaBgCheck').checked = !!bg;
+  document.getElementById('eduMetaBgPicker').style.display = bg ? 'inline-block' : 'none';
+
+  var list = document.getElementById('eduMetaItemList');
+  list.innerHTML = '';
+  if(!items.length) items = [{text:''}];
+  items.forEach(function(item, idx){ addEduMetaItem(item.text, idx); });
+  document.getElementById('eduMetaOverlay').classList.add('show');
+  // 첫 번째 입력에 포커스
+  setTimeout(function(){
+    var first = list.querySelector('input[type=text]');
+    if(first) first.focus();
+  }, 80);
+}
+
+function addEduMetaItem(text, idx){
+  var list = document.getElementById('eduMetaItemList');
+  var row = document.createElement('div');
+  row.style.cssText = 'display:flex;gap:6px;align-items:center;margin-bottom:6px';
+  var inp = document.createElement('input');
+  inp.type = 'text';
+  inp.value = text||'';
+  inp.placeholder = '내용 입력';
+  inp.style.cssText = 'flex:1;padding:8px 10px;border:1px solid #c8d0d8;border-radius:6px;font-size:13px;font-family:\'MyHandwriting\',\'Noto Sans KR\',sans-serif;background:#fff';
+  inp.addEventListener('keydown', function(e){
+    if(e.key==='Enter'){ e.preventDefault(); addEduMetaItem('', -1); var rows=list.querySelectorAll('input[type=text]'); rows[rows.length-1].focus(); }
+  });
+  var del = document.createElement('button');
+  del.textContent = '✕';
+  del.style.cssText = 'background:none;border:none;color:#ccc;font-size:16px;cursor:pointer;padding:0 4px;flex-shrink:0';
+  del.onclick = function(){ if(list.children.length>1) list.removeChild(row); };
+  row.appendChild(inp);
+  row.appendChild(del);
+  list.appendChild(row);
+}
+
+function saveEduMetaModal(){
+  var field = document.getElementById('eduMetaField').value;
+  var dateStr = document.getElementById('eduMetaDate').value;
+  var useBg = document.getElementById('eduMetaBgCheck').checked;
+  var bg = useBg ? document.getElementById('eduMetaBgColor').value : '';
+  var list = document.getElementById('eduMetaItemList');
+  var inputs = list.querySelectorAll('input[type=text]');
+  var items = [];
+  inputs.forEach(function(inp){ if(inp.value.trim()) items.push({text:inp.value.trim()}); });
+  var k = field+'_'+dateStr;
+  if(items.length || bg){
+    curEduData.cells[k] = {items:items, bg:bg};
+  } else {
+    delete curEduData.cells[k];
+  }
+  closeOverlay('eduMetaOverlay');
   saveEduPlan(); renderEduTable();
 }
 
