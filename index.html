@@ -2839,8 +2839,8 @@ function eduGetWeeksInRange(sY,sM,sD,eY,eM,eD) {
 }
 
 function renderEduDetail() {
-  // 학사일정 캘린더가 아직 로드 안됐으면 먼저 fetch
-  if(calAccessToken && (!calEvents || calEvents.length === 0)) {
+  // 수업계획 기간에 맞는 범위로 항상 새로 fetch
+  if(calAccessToken) {
     eduFetchCalForTable();
   } else {
     renderEduTable();
@@ -2872,8 +2872,12 @@ function eduFetchCalForTable() {
   var holPromise = fetch(
     'https://www.googleapis.com/calendar/v3/calendars/'+encodeURIComponent(KR_HOLIDAY_CAL_ID)
     +'/events?timeMin='+start+'&timeMax='+end+'&singleEvents=true&maxResults=200',
-    {headers:{Authorization:'Bearer '+calAccessToken}}).then(function(r){return r.json();})
-    .catch(function(){ return {items:[]}; });
+    {headers:{Authorization:'Bearer '+calAccessToken}})
+    .then(function(r){
+      if(!r.ok){ console.warn('[공휴일 캘린더] HTTP '+r.status); return {items:[]}; }
+      return r.json();
+    })
+    .catch(function(e){ console.warn('[공휴일 캘린더] fetch 실패', e); return {items:[]}; });
 
   Promise.all([hakPromise, holPromise]).then(function(results){
     /* 학사일정 이벤트 → calEvents에 추가 */
@@ -2903,6 +2907,7 @@ function eduFetchCalForTable() {
 
     /* ① 한국 공휴일 캘린더 날짜 추가 */
     var holData = results[1];
+    console.log('[공휴일 캘린더] 이벤트 수:', holData.items ? holData.items.length : 0, holData.error||'');
     if(holData.items){
       holData.items.forEach(function(ev){
         if(!ev.start) return;
