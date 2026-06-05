@@ -497,7 +497,16 @@ body{background:var(--cover);color:var(--ink);display:flex;flex-direction:column
 /* 구 스타일 호환 */
 .note-acts{display:flex;gap:6px;margin-top:8px}
 
-/* ── 교육계획 표지 카드 ── */
+/* ── 교육계획 드래그 핸들 ── */
+.edu-drag-handle{
+  position:absolute;bottom:2px;right:2px;
+  width:8px;height:8px;border-radius:50%;
+  background:#a0b0c8;cursor:crosshair;
+  opacity:0;transition:opacity .15s;
+  z-index:5;
+}
+td:hover .edu-drag-handle{ opacity:1; }
+.edu-drag-highlight{ outline:2px solid #2a6db5 !important; background-color:rgba(42,109,181,0.08) !important; }
 .edu-cover-card{
   position:relative;border-radius:12px;
   aspect-ratio:3/4;cursor:pointer;overflow:hidden;
@@ -3084,16 +3093,19 @@ function renderEduTable() {
             calEvt=matched.map(function(ev){return ev.summary||'';}).join(', ');
           }
           var tdBg=holidayDates[d.dateStr]?HOLIDAY_BG:(cellBgColor||mr.bg);
-          html+='<td style="background:'+tdBg
+          var cellKey=mr.key+'_'+d.dateStr;
+          html+='<td data-cellkey="'+esc(cellKey)+'" data-celltype="meta" style="background:'+tdBg
             +';border-top:'+BN+';border-bottom:'+BN
             +';border-left:'+(di===0?BW:BN)
             +';border-right:'+(isLC?(isLast?BW:BW):BN)
-            +';padding:2px 3px;cursor:pointer;vertical-align:top;width:'+DAY+'px" onclick="eduMetaDateClick(\''+mr.key+'\',\''+d.dateStr+'\')">'
+            +';padding:2px 3px;cursor:pointer;vertical-align:top;width:'+DAY+'px;position:relative" onclick="eduMetaDateClick(\''+mr.key+'\',\''+d.dateStr+'\')">'
             +'<div style="font-size:9px;color:'+mr.color+';min-height:18px;line-height:1.3;word-break:break-all;white-space:pre-wrap">'
             +(calEvt&&!val?'<span style="color:#c08000">'+esc(calEvt)+'</span>':'')
             +(val?esc(val):'')
             +(!val&&!calEvt?'<span style="color:#ddd;font-size:8px">+</span>':'')
-            +'</div></td>';
+            +'</div>'
+            +(val?'<div class="edu-drag-handle" onmousedown="eduDragStart(event,\''+esc(cellKey)+'\',\'meta\')" ontouchstart="eduDragStart(event,\''+esc(cellKey)+'\',\'meta\')"></div>':'')
+            +'</td>';
         });
       }
     });
@@ -3126,13 +3138,15 @@ function renderEduTable() {
           else { cellTitle=String(stored).split('\n')[0].slice(0,20); cellHasContent=true; }
         }
         var cellBg=holidayDates[d.dateStr]?HOLIDAY_BG:'';
-        html+='<td style="'+(cellBg?'background:'+cellBg+';':'')+'border-top:'+BN+';border-bottom:'+BN
+        html+='<td data-cellkey="'+esc(key)+'" data-celltype="row" style="'+(cellBg?'background:'+cellBg+';':'')+'border-top:'+BN+';border-bottom:'+BN
           +';border-left:'+(di===0?BW:BN)
           +';border-right:'+(isLC?(isLast?BW:BW):BN)
-          +';padding:2px 3px;vertical-align:top;cursor:pointer;width:'+DAY+'px" onclick="eduCellClick(\''+esc(key)+'\',\''+esc(r.label)+'\',\''+d.dateStr+'\')">'
+          +';padding:2px 3px;vertical-align:top;cursor:pointer;width:'+DAY+'px;position:relative" onclick="eduCellClick(\''+esc(key)+'\',\''+esc(r.label)+'\',\''+d.dateStr+'\')">'
           +'<div style="font-size:10px;color:#2c3e50;line-height:1.3;min-height:28px;overflow:hidden;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical">'
           +(cellTitle ? esc(cellTitle) : '')
-          +'</div></td>';
+          +'</div>'
+          +(cellHasContent?'<div class="edu-drag-handle" onmousedown="eduDragStart(event,\''+esc(key)+'\',\'row\')" ontouchstart="eduDragStart(event,\''+esc(key)+'\',\'row\')"></div>':'')
+          +'</td>';
       });
     });
     html+='</tr>';
@@ -3322,7 +3336,106 @@ function eduDeleteRowModal(){
   saveEduPlan(); renderEduTable();
 }
 
-function eduWeeksChange(n){ /* 기간 방식으로 대체됨 - 하위 호환 유지 */ }
+/* ── 셀 드래그 복사 ── */
+var _eduDrag = null; // {srcKey, type, srcTd}
+
+function eduDragStart(e, srcKey, type){
+  e.stopPropagation();
+  e.preventDefault();
+  var srcTd = e.currentTarget.parentElement;
+  _eduDrag = {srcKey:srcKey, type:type, srcTd:srcTd, lastTd:srcTd};
+  srcTd.classList.add('edu-drag-highlight');
+
+  function onMove(ev){
+    var pt = ev.touches ? ev.touches[0] : ev;
+    var el = document.elementFromPoint(pt.clientX, pt.clientY);
+    if(!el) return;
+    var td = el.closest ? el.closest('td[data-cellkey]') : null;
+    if(!td || !_eduDrag) return;
+    // 같은 행(tr)에 있고, 같은 type이고, srcTd 오른쪽에 있는 셀만
+    if(td.parentElement !== _eduDrag.srcTd.parentElement) return;
+    if(td.dataset.celltype !== _eduDrag.type) return;
+    // 소스 셀보다 오른쪽인지 확인 (cellIndex 비교)
+    var cells = Array.from(td.parentElement.cells);
+    var srcIdx = cells.indexOf(_eduDrag.srcTd);
+    var tgtIdx = cells.indexOf(td);
+    if(tgtIdx <= srcIdx) return;
+
+    // 하이라이트 갱신
+    cells.forEach(function(c, ci){
+      if(ci > srcIdx && ci <= tgtIdx) c.classList.add('edu-drag-highlight');
+      else if(ci !== srcIdx) c.classList.remove('edu-drag-highlight');
+    });
+    _eduDrag.lastTd = td;
+  }
+
+  function onEnd(){
+    if(!_eduDrag) return;
+    // 드래그 범위 내 모든 셀에 복사
+    var cells = Array.from(_eduDrag.srcTd.parentElement.cells);
+    var srcIdx = cells.indexOf(_eduDrag.srcTd);
+    var tgtIdx = cells.indexOf(_eduDrag.lastTd);
+    cells.forEach(function(c){ c.classList.remove('edu-drag-highlight'); });
+
+    if(tgtIdx > srcIdx){
+      eduDragApply(_eduDrag.srcKey, _eduDrag.type, cells, srcIdx, tgtIdx);
+    }
+    _eduDrag = null;
+    document.removeEventListener('mousemove', onMove);
+    document.removeEventListener('mouseup', onEnd);
+    document.removeEventListener('touchmove', onMove);
+    document.removeEventListener('touchend', onEnd);
+  }
+
+  document.addEventListener('mousemove', onMove);
+  document.addEventListener('mouseup', onEnd);
+  document.addEventListener('touchmove', onMove, {passive:false});
+  document.addEventListener('touchend', onEnd);
+}
+
+function eduDragApply(srcKey, type, cells, srcIdx, tgtIdx){
+  if(!curEduData.cells) curEduData.cells={};
+  var srcData = curEduData.cells[srcKey];
+
+  // 소스 내용(items 또는 title) 추출
+  var itemsToCopy = null; // meta 타입용
+  var titleToCopy = '';   // row 타입용
+  var contentToCopy = ''; // row 타입용
+
+  if(type === 'meta'){
+    if(srcData && typeof srcData === 'object' && srcData.items){
+      itemsToCopy = srcData.items.slice();
+    } else if(typeof srcData === 'string'){
+      itemsToCopy = [{text: srcData}];
+    }
+    if(!itemsToCopy || !itemsToCopy.length) return;
+  } else {
+    if(srcData && typeof srcData === 'object'){
+      titleToCopy = srcData.title||''; contentToCopy = srcData.content||'';
+    } else if(typeof srcData === 'string'){
+      var lines = String(srcData).split('\n');
+      titleToCopy = lines[0]; contentToCopy = lines.slice(1).join('\n');
+    }
+    if(!titleToCopy && !contentToCopy) return;
+  }
+
+  // srcIdx+1 ~ tgtIdx 셀에 복사 (배경색은 유지)
+  for(var i = srcIdx+1; i <= tgtIdx; i++){
+    var td = cells[i];
+    var destKey = td.dataset.cellkey;
+    if(!destKey) continue;
+    if(type === 'meta'){
+      var existing = curEduData.cells[destKey];
+      var existBg = (existing && typeof existing === 'object') ? (existing.bg||'') : '';
+      curEduData.cells[destKey] = {items: itemsToCopy.map(function(it){return {text:it.text};}), bg: existBg};
+    } else {
+      curEduData.cells[destKey] = {title: titleToCopy, content: contentToCopy};
+    }
+  }
+  saveEduPlan(); renderEduTable();
+}
+
+
 
 /* ── 영역 편집 모달 ── */
 var _eduRowEditData = []; // 편집 중인 rows 복사본
