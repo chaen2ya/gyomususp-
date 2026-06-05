@@ -3086,8 +3086,12 @@ function renderEduTable() {
           var isLC=(di===w.dates.length-1);
           var cellData=(curEduData.cells||{})[mr.key+'_'+d.dateStr];
           var val='', cellBgColor='';
-          if(cellData && typeof cellData==='object'){ val=cellData.items?cellData.items.map(function(i){return i.text;}).join('\n'):''; cellBgColor=cellData.bg||''; }
-          else if(cellData){ val=String(cellData); }
+          if(cellData && typeof cellData==='object'){
+            if(cellData.items){ val=cellData.items.map(function(i){return i.text;}).join('\n'); }
+            else if(cellData.title||cellData.content){ val=(cellData.title||'')+(cellData.content?'\n'+cellData.content:''); } // 잘못 저장된 {title,content} 구조 호환
+            cellBgColor=cellData.bg||'';
+          }
+          else if(cellData && typeof cellData==='string'){ val=cellData; }
           var calEvt='';
           if(mr.key==='event'&&typeof calEvents!=='undefined'){
             var matched=calEvents.filter(function(ev){
