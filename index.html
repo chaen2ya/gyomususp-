@@ -848,7 +848,7 @@ body{background:var(--cover);color:var(--ink);display:flex;flex-direction:column
       + 항목 추가
     </button>
     <div style="display:flex;align-items:center;gap:8px;margin-bottom:14px;padding:8px 10px;background:#f5f7fa;border-radius:6px">
-      <input type="checkbox" id="eduMetaBgCheck" onchange="document.getElementById('eduMetaBgPicker').style.display=this.checked?'inline-block':'none'" style="width:16px;height:16px;accent-color:var(--cover);cursor:pointer">
+      <input type="checkbox" id="eduMetaBgCheck" onchange="document.getElementById('eduMetaBgColor').style.display=this.checked?'inline-block':'none'" style="width:16px;height:16px;accent-color:var(--cover);cursor:pointer">
       <label for="eduMetaBgCheck" style="font-size:13px;color:var(--ink);cursor:pointer">배경색 설정</label>
       <input type="color" id="eduMetaBgColor" value="#ffffff" style="display:none;width:36px;height:28px;border:none;cursor:pointer;border-radius:4px;padding:0">
     </div>
@@ -3132,7 +3132,7 @@ function openEduMetaModal(field, dateStr, label, items, bg){
   document.getElementById('eduMetaDate').value = dateStr;
   document.getElementById('eduMetaBgColor').value = bg || '#ffffff';
   document.getElementById('eduMetaBgCheck').checked = !!bg;
-  document.getElementById('eduMetaBgPicker').style.display = bg ? 'inline-block' : 'none';
+  document.getElementById('eduMetaBgColor').style.display = bg ? 'inline-block' : 'none';
 
   var list = document.getElementById('eduMetaItemList');
   list.innerHTML = '';
