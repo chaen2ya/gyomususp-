@@ -317,9 +317,9 @@ body{background:var(--cover);color:var(--ink);display:flex;flex-direction:column
 .chk-toolbar{display:flex;gap:6px;margin-bottom:12px;flex-wrap:wrap}
 .chk-toolbar button{padding:7px 11px;border:none;border-radius:6px;cursor:pointer;
   font-size:12px;font-family:'MyHandwriting','Noto Sans KR',sans-serif;font-weight:500}
-.chk-btn-blue{background:#1c2340;color:#fff}
-.chk-btn-gray{background:#e8eaed;color:#444}
-.chk-btn-red{background:#fce8e6;color:#c0392b}
+.chk-btn-blue{background:#1c2340;color:#fff;font-family:'MyHandwriting','Noto Sans KR',sans-serif;padding:7px 12px;border:none;border-radius:6px;cursor:pointer;font-size:12px}
+.chk-btn-gray{background:#e8eaed;color:#444;font-family:'MyHandwriting','Noto Sans KR',sans-serif;padding:7px 12px;border:none;border-radius:6px;cursor:pointer;font-size:12px}
+.chk-btn-red{background:#fce8e6;color:#c0392b;font-family:'MyHandwriting','Noto Sans KR',sans-serif;padding:7px 12px;border:none;border-radius:6px;cursor:pointer;font-size:12px}
 .chk-wrap{overflow:auto;-webkit-overflow-scrolling:touch;border-radius:8px;
   box-shadow:0 1px 4px rgba(0,0,0,0.1);
   max-height:calc(100vh - var(--hdr-h) - var(--tab-h) - 180px)}
@@ -808,9 +808,6 @@ body{background:var(--cover);color:var(--ink);display:flex;flex-direction:column
         </div>
         <!-- 영역 관리 -->
         <div style="display:flex;gap:6px;margin-bottom:10px;flex-wrap:wrap">
-          <button class="chk-btn-blue" onclick="eduAddCategory()">+ 대분류</button>
-          <button class="chk-btn-blue" onclick="eduAddRow()">+ 영역</button>
-          <button class="chk-btn-red" onclick="eduDeleteRowModal()">영역 삭제</button>
           <button class="chk-btn-gray" onclick="openEduRowEditModal()">✏️ 영역 편집</button>
           <button class="chk-btn-gray" onclick="openEduHolidayModal()">🔴 휴일 설정</button>
           <button class="chk-btn-gray" onclick="eduChangePeriod()" style="margin-left:auto">📅 기간 변경</button>
@@ -838,13 +835,18 @@ body{background:var(--cover);color:var(--ink);display:flex;flex-direction:column
 
 </div><!-- #appScreen -->
 
-<!-- 영역 편집 모달 (이름수정 + 순서변경) -->
+<!-- 영역 편집 모달 (추가/삭제/이름수정/순서변경 통합) -->
 <div class="overlay" id="eduRowEditOverlay">
-  <div class="modal" style="max-width:400px;max-height:80vh;display:flex;flex-direction:column">
+  <div class="modal" style="max-width:420px;max-height:85vh;display:flex;flex-direction:column">
     <div class="modal-title">✏️ 영역 편집</div>
-    <p style="font-size:12px;color:#888;margin-bottom:10px">드래그하거나 ▲▼ 버튼으로 순서 변경, 이름 클릭으로 수정</p>
-    <div id="eduRowEditList" style="flex:1;overflow-y:auto;border:1px solid #e0e4ea;border-radius:8px;padding:4px"></div>
-    <div class="modal-btns" style="margin-top:12px">
+    <p style="font-size:12px;color:#888;margin-bottom:10px;font-family:'MyHandwriting','Noto Sans KR',sans-serif">▲▼ 순서 변경 · 이름 직접 수정 · 대분류 배지 클릭으로 대분류 수정</p>
+    <div id="eduRowEditList" style="flex:1;overflow-y:auto;border:1px solid #e0e4ea;border-radius:8px;padding:4px;margin-bottom:10px"></div>
+    <!-- 추가 버튼 -->
+    <div style="display:flex;gap:6px;margin-bottom:12px">
+      <button onclick="eduRowEditAddRow()" style="flex:1;padding:8px;border:1px dashed #1c2340;border-radius:6px;background:#f0f2f8;font-size:13px;font-family:'MyHandwriting','Noto Sans KR',sans-serif;cursor:pointer;color:#1c2340">+ 영역 추가</button>
+      <button onclick="eduRowEditAddCat()" style="flex:1;padding:8px;border:1px dashed #2e7d52;border-radius:6px;background:#f0f8f4;font-size:13px;font-family:'MyHandwriting','Noto Sans KR',sans-serif;cursor:pointer;color:#2e7d52">+ 대분류 추가</button>
+    </div>
+    <div class="modal-btns">
       <button class="btn-cancel" onclick="closeOverlay('eduRowEditOverlay')">닫기</button>
       <button class="btn-save" onclick="saveEduRowEdit()">저장</button>
     </div>
@@ -3335,17 +3337,16 @@ function openEduRowEditModal(){
 function renderEduRowEditList(){
   var list = document.getElementById('eduRowEditList');
   list.innerHTML = '';
+  var FONT = "'MyHandwriting','Noto Sans KR',sans-serif";
   _eduRowEditData.forEach(function(r, idx){
     var row = document.createElement('div');
-    row.style.cssText = 'display:flex;align-items:center;gap:6px;padding:5px 6px;border-bottom:1px solid #f0f0f0;background:#fff';
-    row.dataset.idx = idx;
+    row.style.cssText = 'display:flex;align-items:center;gap:5px;padding:5px 5px;border-bottom:1px solid #f0f0f0;background:#fff';
 
     // 대분류 배지
     var catBadge = document.createElement('span');
-    catBadge.style.cssText = 'font-size:10px;color:#fff;background:#1c2340;border-radius:4px;padding:2px 5px;white-space:nowrap;flex-shrink:0';
+    catBadge.style.cssText = 'font-size:10px;color:#fff;background:#1c2340;border-radius:4px;padding:2px 5px;white-space:nowrap;flex-shrink:0;cursor:pointer;font-family:'+FONT;
     catBadge.textContent = r.cat;
     catBadge.title = '클릭하여 대분류 수정';
-    catBadge.style.cursor = 'pointer';
     catBadge.onclick = (function(i){ return function(){
       var v = prompt('대분류 이름 수정:', _eduRowEditData[i].cat);
       if(v && v.trim()) { _eduRowEditData[i].cat = v.trim(); renderEduRowEditList(); }
@@ -3355,13 +3356,13 @@ function renderEduRowEditList(){
     var inp = document.createElement('input');
     inp.type = 'text';
     inp.value = r.label;
-    inp.style.cssText = 'flex:1;padding:5px 8px;border:1px solid #e0e4ea;border-radius:5px;font-size:12px;font-family:\'MyHandwriting\',\'Noto Sans KR\',sans-serif';
+    inp.style.cssText = 'flex:1;padding:5px 8px;border:1px solid #e0e4ea;border-radius:5px;font-size:13px;font-family:'+FONT;
     inp.onchange = (function(i){ return function(){ _eduRowEditData[i].label = this.value.trim(); }; })(idx);
 
     // 위로
     var btnUp = document.createElement('button');
     btnUp.textContent = '▲';
-    btnUp.style.cssText = 'background:none;border:1px solid #ddd;border-radius:4px;padding:2px 6px;cursor:pointer;font-size:11px;color:#555;flex-shrink:0';
+    btnUp.style.cssText = 'background:#f5f7fa;border:1px solid #ddd;border-radius:4px;padding:3px 7px;cursor:pointer;font-size:11px;color:#555;flex-shrink:0;font-family:'+FONT;
     btnUp.onclick = (function(i){ return function(){
       if(i===0) return;
       var tmp=_eduRowEditData[i-1]; _eduRowEditData[i-1]=_eduRowEditData[i]; _eduRowEditData[i]=tmp;
@@ -3371,10 +3372,20 @@ function renderEduRowEditList(){
     // 아래로
     var btnDn = document.createElement('button');
     btnDn.textContent = '▼';
-    btnDn.style.cssText = 'background:none;border:1px solid #ddd;border-radius:4px;padding:2px 6px;cursor:pointer;font-size:11px;color:#555;flex-shrink:0';
+    btnDn.style.cssText = 'background:#f5f7fa;border:1px solid #ddd;border-radius:4px;padding:3px 7px;cursor:pointer;font-size:11px;color:#555;flex-shrink:0;font-family:'+FONT;
     btnDn.onclick = (function(i){ return function(){
       if(i===_eduRowEditData.length-1) return;
       var tmp=_eduRowEditData[i+1]; _eduRowEditData[i+1]=_eduRowEditData[i]; _eduRowEditData[i]=tmp;
+      renderEduRowEditList();
+    };})(idx);
+
+    // 삭제
+    var btnDel = document.createElement('button');
+    btnDel.textContent = '🗑';
+    btnDel.style.cssText = 'background:#fce8e6;border:none;border-radius:4px;padding:3px 7px;cursor:pointer;font-size:12px;flex-shrink:0;font-family:'+FONT;
+    btnDel.onclick = (function(i){ return function(){
+      if(!confirm('['+_eduRowEditData[i].label+'] 영역을 삭제하시겠습니까?')) return;
+      _eduRowEditData.splice(i,1);
       renderEduRowEditList();
     };})(idx);
 
@@ -3382,8 +3393,35 @@ function renderEduRowEditList(){
     row.appendChild(inp);
     row.appendChild(btnUp);
     row.appendChild(btnDn);
+    row.appendChild(btnDel);
     list.appendChild(row);
   });
+}
+
+function eduRowEditAddRow(){
+  // 현재 목록의 마지막 대분류를 기본값으로
+  var lastCat = _eduRowEditData.length ? _eduRowEditData[_eduRowEditData.length-1].cat : '기본';
+  _eduRowEditData.push({cat:lastCat, label:'새 영역'});
+  renderEduRowEditList();
+  // 스크롤 맨 아래로
+  var list = document.getElementById('eduRowEditList');
+  list.scrollTop = list.scrollHeight;
+  // 마지막 input 포커스
+  setTimeout(function(){
+    var inputs = list.querySelectorAll('input[type=text]');
+    if(inputs.length) { var last=inputs[inputs.length-1]; last.select(); last.focus(); }
+  }, 50);
+}
+
+function eduRowEditAddCat(){
+  var cat = prompt('새 대분류 이름:');
+  if(!cat||!cat.trim()) return;
+  var label = prompt('첫 번째 영역 이름:');
+  if(!label||!label.trim()) return;
+  _eduRowEditData.push({cat:cat.trim(), label:label.trim()});
+  renderEduRowEditList();
+  var list = document.getElementById('eduRowEditList');
+  list.scrollTop = list.scrollHeight;
 }
 
 function saveEduRowEdit(){
