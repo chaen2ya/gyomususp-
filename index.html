@@ -1311,23 +1311,66 @@ function calInit() {
   var now = new Date();
   calYear = now.getFullYear();
   calMonth = now.getMonth();
-  // Google Identity Services 초기화
+
   calTokenClient = google.accounts.oauth2.initTokenClient({
     client_id: CAL_CLIENT_ID,
     scope: CAL_SCOPE,
     callback: function(resp) {
-      if(resp.error) { calShowError('구글 로그인 실패: ' + resp.error); return; }
+      if(resp.error) {
+        if(resp.error === 'interaction_required' || resp.error === 'consent_required' || resp.error === 'access_denied') {
+          calShowConnectBtn();
+        } else {
+          calShowError('구글 로그인 실패: ' + resp.error);
+        }
+        return;
+      }
+      // 성공 시 현재 scope 기록
+      localStorage.setItem('calGrantedScope', CAL_SCOPE);
       calAccessToken = resp.access_token;
       calFetchCalendars();
     }
   });
-  // Firestore에서 선택 캘린더 로드 후 토큰 요청
+
   uref('data/settings').get().then(function(snap) {
     if(snap.exists && snap.data().calSelected) {
       calSelected = snap.data().calSelected;
     }
-    calTokenClient.requestAccessToken({prompt: ''});
+
+    // scope가 바뀌었으면 강제 재동의 필요
+    var grantedScope = localStorage.getItem('calGrantedScope') || '';
+    var scopeChanged = grantedScope !== CAL_SCOPE;
+
+    // Safari/WebKit PWA 감지
+    var isSafariPWA = /^((?!chrome|android).)*safari/i.test(navigator.userAgent)
+                   || window.navigator.standalone === true;
+
+    if(scopeChanged || isSafariPWA) {
+      // scope 변경됐거나 Safari: 버튼으로 명시적 동의 유도
+      calShowConnectBtn();
+    } else {
+      // Chrome/Android: silent 시도, 5초 안에 콜백 없으면 버튼 표시
+      var silentTimer = setTimeout(function() { calShowConnectBtn(); }, 5000);
+      var origCb = calTokenClient.callback;
+      calTokenClient.callback = function(resp) {
+        clearTimeout(silentTimer);
+        origCb(resp);
+      };
+      calTokenClient.requestAccessToken({prompt: ''});
+    }
   });
+}
+
+function calShowConnectBtn() {
+  document.getElementById('calBody').innerHTML =
+    '<div style="text-align:center;padding:32px 16px">' +
+    '<div style="font-size:40px;margin-bottom:12px">📅</div>' +
+    '<p style="font-size:14px;color:var(--ink);margin-bottom:16px">구글 캘린더에 연결하려면<br>아래 버튼을 탭하세요.</p>' +
+    '<button onclick="calConnectManual()" style="padding:12px 24px;background:var(--cover);color:#fff;border:none;border-radius:8px;font-size:15px;cursor:pointer;font-family:\'MyHandwriting\',\'Noto Sans KR\',sans-serif">🔗 캘린더 연결하기</button>' +
+    '</div>';
+}
+
+function calConnectManual() {
+  calTokenClient.requestAccessToken({prompt: 'consent'});
 }
 
 function calFetchCalendars() {
@@ -1430,7 +1473,6 @@ function calRender() {
         var s = ev.start && (ev.start.date || ev.start.dateTime||'').slice(0,10);
         var eRaw = ev.end && (ev.end.date || ev.end.dateTime||'');
         var e = eRaw.slice(0,10);
-        // 종일 이벤트는 end.date가 exclusive(마지막 날 다음날)이므로 1일 빼서 비교
         if(ev.end && ev.end.date && !ev.end.dateTime) {
           var endD = new Date(e); endD.setDate(endD.getDate()-1);
           e = endD.getFullYear()+'-'+String(endD.getMonth()+1).padStart(2,'0')+'-'+String(endD.getDate()).padStart(2,'0');
