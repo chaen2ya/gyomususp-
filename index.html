@@ -1272,41 +1272,6 @@ function setupListeners() {
   }));
   unsubscribers.push(uref('data/staff').onSnapshot(function(snap) {
     staff = snap.exists ? (snap.data().items || []) : [];
-    if(!staff.length) {
-      staff = [
-        {id:101,name:'이현진',role:'원장',phone:'010-3729-2275'},
-        {id:102,name:'김세진',role:'원감',phone:'010-5792-2414'},
-        {id:103,name:'김지혜',role:'새싹1반/교무부장',phone:'010-9319-7570'},
-        {id:104,name:'봉유민',role:'새싹2반/정보',phone:'010-5465-9842'},
-        {id:105,name:'김현주',role:'에듀케어(새싹사랑1반)',phone:'010-6298-6189'},
-        {id:106,name:'채연옥',role:'행정실장',phone:'010-9032-2208'},
-        {id:107,name:'김채은',role:'꽃잎1반/안전',phone:'010-4064-4628'},
-        {id:108,name:'구양희',role:'꽃잎2반/생활',phone:'010-2688-1522'},
-        {id:109,name:'김민주',role:'에듀케어(새싹사랑2반)',phone:'010-9799-5807'},
-        {id:110,name:'박정만',role:'주무관(행정)',phone:'010-3078-8629'},
-        {id:111,name:'김정은',role:'열매반/연구부장',phone:'010-4576-1319'},
-        {id:112,name:'김보람',role:'햇살반/특수·물품',phone:'010-3265-6657'},
-        {id:113,name:'신선미',role:'에듀케어(꽃잎사랑1반)',phone:'010-8661-0639'},
-        {id:114,name:'임창희',role:'주무관(시설)',phone:'010-5604-9776'},
-        {id:115,name:'김호진',role:'교육실무사',phone:'010-2174-4322'},
-        {id:116,name:'유은아',role:'특수교육실무사',phone:'010-2273-5631'},
-        {id:117,name:'정유미',role:'에듀케어(꽃잎사랑2반)',phone:'010-2639-9337'},
-        {id:118,name:'이진선',role:'영양사',phone:'010-5005-6117'},
-        {id:119,name:'진민경',role:'순회 시간 강사',phone:'010-5620-7593'},
-        {id:120,name:'이인혜',role:'특수교육실무사',phone:'010-3293-0215'},
-        {id:121,name:'이미영',role:'에듀케어(열매사랑1반)',phone:'010-8711-1536'},
-        {id:122,name:'우병희',role:'조리사',phone:'010-6450-3156'},
-        {id:123,name:'김승아',role:'돌봄(아침) 1',phone:'010-4326-1247'},
-        {id:124,name:'박혜인',role:'돌봄(아침) 2',phone:'010-9250-6553'},
-        {id:125,name:'강지혜',role:'에듀케어(특수)',phone:'010-6334-9048'},
-        {id:126,name:'한정희',role:'조리실무사',phone:'010-4748-7608'},
-        {id:127,name:'이은혜',role:'3세지원인력 1',phone:'010-6245-6300'},
-        {id:128,name:'배은미',role:'3세지원인력 2',phone:'010-3488-2988'},
-        {id:129,name:'김미숙',role:'방과후 지원(하모니)',phone:'010-9011-9644'},
-        {id:130,name:'권희선',role:'방과후 지원(귀가)',phone:'010-9350-5686'}
-      ];
-      saveStaff();
-    }
     if(appReady) renderStaff();
     onDocLoaded();
   }));
